@@ -1,9 +1,9 @@
-const db = require('../config/db.js');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import db from '../config/db.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 // register user
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
     const { full_name, email, password } = req.body;
 
     try {
@@ -26,7 +26,7 @@ exports.register = async (req, res) => {
 };
 
 // login user
-exports.login = (req, res) => {
+export const login = (req, res) => {
     const { email, password } = req.body;
 
     const sql = 'SELECT * FROM users WHERE email = ?';
