@@ -1,473 +1,218 @@
-// stores/user.store.js
-import api from '@/services/api'
+import { apiHelpers, apiService } from '@/services/api'
+
+const DEFAULT_PREFERENCES = {
+  airline: '',
+  accommodation: 'hostel',
+  maxBudget: 1500,
+  newsletter: true,
+  emailNotifications: true,
+  smsAlerts: false,
+  preferredRegions: []
+}
+
+const normalizeProfile = (authUser, profile) => {
+  const fullName = authUser?.full_name || [authUser?.firstName, authUser?.lastName].filter(Boolean).join(' ')
+  const [firstName = '', ...rest] = (fullName || '').trim().split(' ')
+  return {
+    firstName,
+    lastName: rest.join(' '),
+    email: authUser?.email || '',
+    phone: profile?.phone || '',
+    dateOfBirth: profile?.date_of_birth || '',
+    city: profile?.city || '',
+    country: profile?.country || '',
+    avatar: profile?.avatar_url || '',
+    passportNumber: '',
+    passportExpiry: ''
+  }
+}
+
+const normalizePreferences = (preferences) => ({
+  ...DEFAULT_PREFERENCES,
+  maxBudget: Number(preferences?.budget_max || DEFAULT_PREFERENCES.maxBudget),
+  preferredRegions: Array.isArray(preferences?.preferred_regions) ? preferences.preferred_regions : []
+})
 
 export default {
   namespaced: true,
-  
+
   state: {
     profile: null,
-    preferences: {
-      airline: '',
-      accommodation: 'hostel',
-      maxBudget: 1500,
-      newsletter: true,
-      emailNotifications: true,
-      smsAlerts: false,
-      language: 'en',
-      currency: 'ZAR'
-    },
+    preferences: { ...DEFAULT_PREFERENCES },
     blacklist: [],
-    wishlist: [],
-    paymentMethods: [],
+    blacklistItems: [],
     isLoading: false,
     error: null
   },
 
   getters: {
-    profile: state => state.profile,
-    fullName: state => {
-      if (!state.profile) return ''
-      return `${state.profile.firstName || ''} ${state.profile.lastName || ''}`.trim()
-    },
-    preferences: state => state.preferences,
-    blacklist: state => state.blacklist,
-    wishlist: state => state.wishlist,
-    wishlistCount: state => state.wishlist.length,
-    paymentMethods: state => state.paymentMethods,
-    defaultPaymentMethod: state => state.paymentMethods.find(p => p.isDefault),
-    isLoading: state => state.isLoading,
-    error: state => state.error,
-    
-    // Check if destination is in wishlist
-    isInWishlist: state => (destinationId) => {
-      return state.wishlist.some(item => item.id === destinationId)
-    },
-    
-    // Check if city is blacklisted
-    isBlacklisted: state => (city) => {
-      return state.blacklist.includes(city)
-    }
+    profile: (state) => state.profile,
+    preferences: (state) => state.preferences,
+    blacklist: (state) => state.blacklist,
+    blacklistItems: (state) => state.blacklistItems,
+    isLoading: (state) => state.isLoading,
+    error: (state) => state.error
   },
 
   mutations: {
+    SET_LOADING(state, value) {
+      state.isLoading = value
+    },
+    SET_ERROR(state, value) {
+      state.error = value
+    },
     SET_PROFILE(state, profile) {
       state.profile = profile
-    },
-    UPDATE_PROFILE(state, updates) {
-      state.profile = { ...state.profile, ...updates }
     },
     SET_PREFERENCES(state, preferences) {
       state.preferences = { ...state.preferences, ...preferences }
     },
-    SET_BLACKLIST(state, blacklist) {
-      state.blacklist = blacklist
+    SET_BLACKLIST_ITEMS(state, items) {
+      state.blacklistItems = items
+      state.blacklist = items.map((item) => item.name).filter(Boolean)
     },
-    ADD_TO_BLACKLIST(state, city) {
-      if (!state.blacklist.includes(city)) {
-        state.blacklist.push(city)
-      }
-    },
-    REMOVE_FROM_BLACKLIST(state, city) {
-      state.blacklist = state.blacklist.filter(c => c !== city)
-    },
-    SET_WISHLIST(state, wishlist) {
-      state.wishlist = wishlist
-    },
-    ADD_TO_WISHLIST(state, item) {
-      if (!state.wishlist.some(i => i.id === item.id)) {
-        state.wishlist.push({
-          ...item,
-          addedAt: new Date().toISOString()
-        })
-      }
-    },
-    REMOVE_FROM_WISHLIST(state, itemId) {
-      state.wishlist = state.wishlist.filter(item => item.id !== itemId)
-    },
-    CLEAR_WISHLIST(state) {
-      state.wishlist = []
-    },
-    SET_PAYMENT_METHODS(state, methods) {
-      state.paymentMethods = methods
-    },
-    ADD_PAYMENT_METHOD(state, method) {
-      state.paymentMethods.push(method)
-    },
-    REMOVE_PAYMENT_METHOD(state, methodId) {
-      state.paymentMethods = state.paymentMethods.filter(m => m.id !== methodId)
-    },
-    SET_DEFAULT_PAYMENT(state, methodId) {
-      state.paymentMethods = state.paymentMethods.map(m => ({
-        ...m,
-        isDefault: m.id === methodId
-      }))
-    },
-    SET_LOADING(state, status) {
-      state.isLoading = status
-    },
-    SET_ERROR(state, error) {
-      state.error = error
+    CLEAR_USER_DATA(state) {
+      state.profile = null
+      state.preferences = { ...DEFAULT_PREFERENCES }
+      state.blacklist = []
+      state.blacklistItems = []
+      state.error = null
     }
   },
 
   actions: {
-    // Fetch user profile
-    async fetchProfile({ commit }) {
+    async bootstrap({ dispatch, rootGetters }) {
+      if (!rootGetters['auth/isAuthenticated']) return
+      await Promise.all([
+        dispatch('fetchProfile'),
+        dispatch('fetchPreferences'),
+        dispatch('fetchBlacklist')
+      ])
+    },
+
+    async fetchProfile({ commit, rootGetters }) {
       commit('SET_LOADING', true)
       commit('SET_ERROR', null)
-      
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const profile = {
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com',
-          phone: '+27 12 345 6789',
-          dateOfBirth: '1990-01-01',
-          city: 'Johannesburg',
-          country: 'South Africa',
-          passportNumber: 'AB123456',
-          passportExpiry: '2030-12-31',
-          avatar: null,
-          memberSince: '2026-01-15'
-        }
-        
+        const authUser = rootGetters['auth/currentUser'] || {}
+        const response = await apiService.user.getProfile()
+        const profile = normalizeProfile(authUser, response.data || {})
         commit('SET_PROFILE', profile)
         return profile
       } catch (error) {
-        commit('SET_ERROR', error.message)
-        throw error
+        const message = apiHelpers.getErrorMessage(error)
+        commit('SET_ERROR', message)
+        return null
       } finally {
         commit('SET_LOADING', false)
       }
     },
 
-    // Update profile
-    async updateProfile({ commit }, profileData) {
+    async updateProfile({ commit, state, dispatch }, form) {
       commit('SET_LOADING', true)
       commit('SET_ERROR', null)
-      
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 800))
-        
-        commit('UPDATE_PROFILE', profileData)
-        
+        await apiService.user.updateProfile({
+          phone: form.phone || null,
+          date_of_birth: form.dob || null,
+          country: form.country || null,
+          city: form.city || null,
+          avatar_url: state.profile?.avatar || null
+        })
+
+        commit('SET_PROFILE', {
+          ...(state.profile || {}),
+          firstName: form.firstName || '',
+          lastName: form.lastName || '',
+          phone: form.phone || '',
+          dateOfBirth: form.dob || '',
+          city: form.city || '',
+          country: form.country || ''
+        })
+
+        await dispatch('auth/updateProfile', { firstName: form.firstName, lastName: form.lastName }, { root: true })
         return { success: true }
       } catch (error) {
-        commit('SET_ERROR', error.message)
-        return { success: false, error: error.message }
+        const message = apiHelpers.getErrorMessage(error)
+        commit('SET_ERROR', message)
+        return { success: false, error: message }
       } finally {
         commit('SET_LOADING', false)
       }
     },
 
-    // Fetch preferences
     async fetchPreferences({ commit }) {
+      commit('SET_ERROR', null)
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        const preferences = {
-          airline: '',
-          accommodation: 'hostel',
-          maxBudget: 1500,
-          newsletter: true,
-          emailNotifications: true,
-          smsAlerts: false,
-          language: 'en',
-          currency: 'ZAR'
-        }
-        
+        const response = await apiService.user.getPreferences()
+        const preferences = normalizePreferences(response.data || {})
         commit('SET_PREFERENCES', preferences)
         return preferences
       } catch (error) {
-        console.error('Failed to fetch preferences:', error)
-        throw error
+        const message = apiHelpers.getErrorMessage(error)
+        commit('SET_ERROR', message)
+        return null
       }
     },
 
-    // Update preferences
     async updatePreferences({ commit }, preferences) {
+      commit('SET_ERROR', null)
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 400))
-        
+        await apiService.user.updatePreferences({
+          budget_min: 799,
+          budget_max: preferences.maxBudget,
+          preferred_duration_days: null,
+          preferred_regions: preferences.preferredRegions || []
+        })
         commit('SET_PREFERENCES', preferences)
-        
         return { success: true }
       } catch (error) {
-        return { success: false, error: error.message }
+        const message = apiHelpers.getErrorMessage(error)
+        commit('SET_ERROR', message)
+        return { success: false, error: message }
       }
     },
 
-    // Fetch blacklist
     async fetchBlacklist({ commit }) {
+      commit('SET_ERROR', null)
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 200))
-        
-        const blacklist = ['Durban', 'Port Elizabeth']
-        commit('SET_BLACKLIST', blacklist)
-        return blacklist
+        const response = await apiService.user.getBlacklist()
+        const items = Array.isArray(response.data) ? response.data : []
+        commit('SET_BLACKLIST_ITEMS', items)
+        return items
       } catch (error) {
-        console.error('Failed to fetch blacklist:', error)
-        throw error
+        const message = apiHelpers.getErrorMessage(error)
+        commit('SET_ERROR', message)
+        return []
       }
     },
 
-    // Add to blacklist
-    async addToBlacklist({ commit, state }, city) {
+    async addToBlacklist({ dispatch }, destination) {
+      const destinationId = destination?.destination_id ?? destination?.id
+      if (!destinationId) return { success: false, error: 'Destination id is required' }
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        if (!state.blacklist.includes(city)) {
-          commit('ADD_TO_BLACKLIST', city)
-        }
-        
+        await apiService.user.addToBlacklist({ destination_id: destinationId })
+        await dispatch('fetchBlacklist')
         return { success: true }
       } catch (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: apiHelpers.getErrorMessage(error) }
       }
     },
 
-    // Remove from blacklist
-    async removeFromBlacklist({ commit }, city) {
+    async removeFromBlacklist({ state, dispatch }, cityName) {
+      const item = state.blacklistItems.find((entry) => entry.name === cityName)
+      if (!item?.destination_id) return { success: false, error: 'Blacklist entry not found' }
       try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 200))
-        
-        commit('REMOVE_FROM_BLACKLIST', city)
-        
+        await apiService.user.removeFromBlacklist(item.destination_id)
+        await dispatch('fetchBlacklist')
         return { success: true }
       } catch (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: apiHelpers.getErrorMessage(error) }
       }
     },
 
-    // Update blacklist
-    async updateBlacklist({ commit }, blacklist) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 400))
-        
-        commit('SET_BLACKLIST', blacklist)
-        
-        return { success: true }
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-    },
-
-    // Fetch wishlist
-    async fetchWishlist({ commit }) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const wishlist = [
-          {
-            id: 1,
-            name: 'Tokyo',
-            country: 'Japan',
-            image: '/images/tokyo.jpg',
-            price: 1299,
-            days: 5,
-            rating: 4.8,
-            tags: ['Culture', 'Food'],
-            addedAt: '2026-02-15T10:30:00Z'
-          },
-          {
-            id: 2,
-            name: 'Paris',
-            country: 'France',
-            image: '/images/paris.jpg',
-            price: 999,
-            days: 4,
-            rating: 4.7,
-            tags: ['Romance', 'Art'],
-            addedAt: '2026-02-14T14:20:00Z'
-          }
-        ]
-        
-        commit('SET_WISHLIST', wishlist)
-        return wishlist
-      } catch (error) {
-        console.error('Failed to fetch wishlist:', error)
-        throw error
-      }
-    },
-
-    // Add to wishlist
-    async addToWishlist({ commit }, item) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        commit('ADD_TO_WISHLIST', item)
-        
-        return { success: true }
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-    },
-
-    // Remove from wishlist
-    async removeFromWishlist({ commit }, itemId) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 200))
-        
-        commit('REMOVE_FROM_WISHLIST', itemId)
-        
-        return { success: true }
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-    },
-
-    // Clear wishlist
-    async clearWishlist({ commit }) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        commit('CLEAR_WISHLIST')
-        
-        return { success: true }
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-    },
-
-    // Fetch payment methods
-    async fetchPaymentMethods({ commit }) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 400))
-        
-        const methods = [
-          {
-            id: 1,
-            type: 'card',
-            cardType: 'visa',
-            last4: '4242',
-            expiryMonth: 12,
-            expiryYear: 2028,
-            cardholderName: 'John Doe',
-            isDefault: true
-          },
-          {
-            id: 2,
-            type: 'card',
-            cardType: 'mastercard',
-            last4: '8888',
-            expiryMonth: 8,
-            expiryYear: 2027,
-            cardholderName: 'John Doe',
-            isDefault: false
-          }
-        ]
-        
-        commit('SET_PAYMENT_METHODS', methods)
-        return methods
-      } catch (error) {
-        console.error('Failed to fetch payment methods:', error)
-        throw error
-      }
-    },
-
-    // Add payment method
-    async addPaymentMethod({ commit }, methodData) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 800))
-        
-        const newMethod = {
-          id: Date.now(),
-          ...methodData,
-          isDefault: false
-        }
-        
-        commit('ADD_PAYMENT_METHOD', newMethod)
-        
-        return { success: true, method: newMethod }
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-    },
-
-    // Remove payment method
-    async removePaymentMethod({ commit, state }, methodId) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 400))
-        
-        const method = state.paymentMethods.find(m => m.id === methodId)
-        if (method?.isDefault) {
-          throw new Error('Cannot delete default payment method')
-        }
-        
-        commit('REMOVE_PAYMENT_METHOD', methodId)
-        
-        return { success: true }
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-    },
-
-    // Set default payment method
-    async setDefaultPayment({ commit }, methodId) {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        commit('SET_DEFAULT_PAYMENT', methodId)
-        
-        return { success: true }
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-    },
-
-    // Upload avatar
-    async uploadAvatar({ commit }, file) {
-      commit('SET_LOADING', true)
-      
-      try {
-        // Mock upload
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        const avatarUrl = URL.createObjectURL(file)
-        commit('UPDATE_PROFILE', { avatar: avatarUrl })
-        
-        return { success: true, url: avatarUrl }
-      } catch (error) {
-        return { success: false, error: error.message }
-      } finally {
-        commit('SET_LOADING', false)
-      }
-    },
-
-    // Clear all user data (logout)
     clearUserData({ commit }) {
-      commit('SET_PROFILE', null)
-      commit('SET_BLACKLIST', [])
-      commit('SET_WISHLIST', [])
-      commit('SET_PAYMENT_METHODS', [])
-      commit('SET_PREFERENCES', {
-        airline: '',
-        accommodation: 'hostel',
-        maxBudget: 1500,
-        newsletter: true,
-        emailNotifications: true,
-        smsAlerts: false,
-        language: 'en',
-        currency: 'ZAR'
-      })
+      commit('CLEAR_USER_DATA')
     }
   }
 }

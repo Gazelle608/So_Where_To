@@ -17,4 +17,6 @@ app.component('LoadingSpinner', LoadingSpinner)
 app.use(store)
 app.use(router)
 
+await store.dispatch('init')
+
 app.mount('#app')

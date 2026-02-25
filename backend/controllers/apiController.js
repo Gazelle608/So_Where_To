@@ -1,6 +1,20 @@
 import dbQuery from '../utils/dbQuery.js';
+import crypto from 'crypto';
 
 const toBoolInt = (value) => (value ? 1 : 0);
+const payfastEncode = (value) => encodeURIComponent(String(value).trim()).replace(/%20/g, '+');
+
+const buildPayFastSignature = (fields, passphrase = '') => {
+    const pairs = Object.entries(fields)
+        .filter(([, value]) => value !== undefined && value !== null && String(value) !== '')
+        .map(([key, value]) => `${key}=${payfastEncode(value)}`);
+
+    if (passphrase) {
+        pairs.push(`passphrase=${payfastEncode(passphrase)}`);
+    }
+
+    return crypto.createHash('md5').update(pairs.join('&')).digest('hex');
+};
 
 export const getMe = async (req, res) => {
     try {
@@ -208,12 +222,43 @@ export const listDestinations = async (req, res) => {
 
         const normalized = rows.map((row) => ({
             ...row,
-            tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags
+            tags: (typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags).filter(Boolean)
         }));
         res.json(normalized);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+};
+
+export const deleteMyAccount = async (req, res) => {
+    try {
+        // bookings.user_id does not cascade, so remove bookings first.
+        await dbQuery('DELETE FROM bookings WHERE user_id = ?', [req.user.id]);
+
+        const result = await dbQuery('DELETE FROM users WHERE user_id = ?', [req.user.id]);
+        if (!result.affectedRows) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const listFeaturedDestinations = async (req, res) => {
+    req.query = { ...req.query, is_featured: 1 };
+    return listDestinations(req, res);
+};
+
+export const listDestinationsByRegion = async (req, res) => {
+    req.query = { ...req.query, region: req.params.region };
+    return listDestinations(req, res);
+};
+
+export const searchDestinations = async (req, res) => {
+    req.query = { ...req.query, search: req.query.q || req.query.search || '' };
+    return listDestinations(req, res);
 };
 
 export const getDestinationById = async (req, res) => {
@@ -235,7 +280,7 @@ export const getDestinationById = async (req, res) => {
 
         if (!rows.length) return res.status(404).json({ message: 'Destination not found' });
         const destination = rows[0];
-        destination.tags = typeof destination.tags === 'string' ? JSON.parse(destination.tags) : destination.tags;
+        destination.tags = (typeof destination.tags === 'string' ? JSON.parse(destination.tags) : destination.tags).filter(Boolean);
         res.json(destination);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -328,7 +373,18 @@ export const deleteDestination = async (req, res) => {
 export const listCartItems = async (req, res) => {
     try {
         const rows = await dbQuery(
-            `SELECT c.*, d.name, d.image_url, d.region, d.country
+            `SELECT
+                c.cart_item_id AS id,
+                c.cart_item_id,
+                c.destination_id,
+                c.quantity,
+                c.unit_price,
+                c.created_at,
+                c.updated_at,
+                d.name,
+                d.image_url,
+                d.region,
+                d.country
              FROM cart_items c
              JOIN destinations d ON d.destination_id = c.destination_id
              WHERE c.user_id = ?
@@ -342,7 +398,9 @@ export const listCartItems = async (req, res) => {
 };
 
 export const addOrUpdateCartItem = async (req, res) => {
-    const { destination_id, quantity = 1, unit_price } = req.body;
+    const destination_id = req.body.destination_id ?? req.body.destinationId ?? req.body.id;
+    const quantity = req.body.quantity ?? 1;
+    const unit_price = req.body.unit_price ?? req.body.unitPrice ?? req.body.price;
     if (!destination_id || !unit_price) return res.status(400).json({ message: 'destination_id and unit_price are required' });
 
     try {
@@ -362,12 +420,92 @@ export const addOrUpdateCartItem = async (req, res) => {
 
 export const removeCartItem = async (req, res) => {
     try {
+        const itemId = req.params.destinationId || req.params.itemId;
         const result = await dbQuery(
-            'DELETE FROM cart_items WHERE user_id = ? AND destination_id = ?',
-            [req.user.id, req.params.destinationId]
+            'DELETE FROM cart_items WHERE user_id = ? AND (destination_id = ? OR cart_item_id = ?)',
+            [req.user.id, itemId, itemId]
         );
         if (!result.affectedRows) return res.status(404).json({ message: 'Cart item not found' });
         res.json({ message: 'Cart item removed' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const updateCartItemQuantity = async (req, res) => {
+    const quantity = Number(req.body.quantity);
+    const itemId = req.params.itemId;
+
+    if (!itemId) return res.status(400).json({ message: 'itemId is required' });
+    if (!Number.isFinite(quantity)) return res.status(400).json({ message: 'quantity is required' });
+
+    try {
+        if (quantity <= 0) {
+            const result = await dbQuery(
+                'DELETE FROM cart_items WHERE user_id = ? AND (destination_id = ? OR cart_item_id = ?)',
+                [req.user.id, itemId, itemId]
+            );
+            if (!result.affectedRows) return res.status(404).json({ message: 'Cart item not found' });
+            return res.json({ message: 'Cart item removed' });
+        }
+
+        const result = await dbQuery(
+            'UPDATE cart_items SET quantity = ? WHERE user_id = ? AND (destination_id = ? OR cart_item_id = ?)',
+            [quantity, req.user.id, itemId, itemId]
+        );
+        if (!result.affectedRows) return res.status(404).json({ message: 'Cart item not found' });
+        res.json({ message: 'Cart item updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const clearCart = async (req, res) => {
+    try {
+        await dbQuery('DELETE FROM cart_items WHERE user_id = ?', [req.user.id]);
+        res.json({ message: 'Cart cleared' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const checkoutCart = async (req, res) => {
+    const { departure_date, return_date, travelers_count = 1, itinerary_url } = req.body;
+
+    try {
+        const items = await dbQuery(
+            'SELECT destination_id, quantity, unit_price FROM cart_items WHERE user_id = ?',
+            [req.user.id]
+        );
+
+        if (!items.length) return res.status(400).json({ message: 'Cart is empty' });
+
+        const bookingIds = [];
+        for (const item of items) {
+            const total_amount = Number(item.unit_price) * Number(item.quantity);
+            const bookingResult = await dbQuery(
+                `INSERT INTO bookings
+                 (user_id, destination_id, departure_date, return_date, travelers_count, total_amount, itinerary_url)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    req.user.id,
+                    item.destination_id,
+                    departure_date || null,
+                    return_date || null,
+                    travelers_count,
+                    total_amount,
+                    itinerary_url || null
+                ]
+            );
+            bookingIds.push(bookingResult.insertId);
+        }
+
+        await dbQuery('DELETE FROM cart_items WHERE user_id = ?', [req.user.id]);
+
+        res.status(201).json({
+            message: 'Checkout complete',
+            booking_ids: bookingIds
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -427,7 +565,24 @@ export const updateSpinOfferStatus = async (req, res) => {
 export const listMyBookings = async (req, res) => {
     try {
         const rows = await dbQuery(
-            `SELECT b.*, d.name AS destination_name, d.image_url
+            `SELECT
+                b.booking_id AS id,
+                b.booking_id,
+                b.offer_id,
+                b.destination_id,
+                b.departure_date,
+                b.return_date,
+                b.travelers_count,
+                b.total_amount,
+                b.status,
+                b.itinerary_url,
+                b.created_at,
+                b.updated_at,
+                d.name AS destination_name,
+                d.country,
+                d.region,
+                d.image_url,
+                d.price
              FROM bookings b
              JOIN destinations d ON d.destination_id = b.destination_id
              WHERE b.user_id = ?
@@ -435,6 +590,39 @@ export const listMyBookings = async (req, res) => {
             [req.user.id]
         );
         res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getMyBookingById = async (req, res) => {
+    try {
+        const rows = await dbQuery(
+            `SELECT
+                b.booking_id AS id,
+                b.booking_id,
+                b.offer_id,
+                b.destination_id,
+                b.departure_date,
+                b.return_date,
+                b.travelers_count,
+                b.total_amount,
+                b.status,
+                b.itinerary_url,
+                b.created_at,
+                b.updated_at,
+                d.name AS destination_name,
+                d.country,
+                d.region,
+                d.image_url,
+                d.price
+             FROM bookings b
+             JOIN destinations d ON d.destination_id = b.destination_id
+             WHERE b.user_id = ? AND b.booking_id = ?`,
+            [req.user.id, req.params.bookingId]
+        );
+        if (!rows.length) return res.status(404).json({ message: 'Booking not found' });
+        res.json(rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -489,6 +677,19 @@ export const updateBookingStatus = async (req, res) => {
         );
         if (!result.affectedRows) return res.status(404).json({ message: 'Booking not found' });
         res.json({ message: 'Booking updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const deleteMyBooking = async (req, res) => {
+    try {
+        const result = await dbQuery(
+            'DELETE FROM bookings WHERE booking_id = ? AND user_id = ?',
+            [req.params.bookingId, req.user.id]
+        );
+        if (!result.affectedRows) return res.status(404).json({ message: 'Booking not found' });
+        res.json({ message: 'Booking deleted' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -579,6 +780,179 @@ export const createPayment = async (req, res) => {
         }
         res.status(500).json({ error: error.message });
     }
+};
+
+export const createPayFastCheckout = async (req, res) => {
+    const bookingIds = Array.isArray(req.body.booking_ids)
+        ? req.body.booking_ids.map((id) => Number(id)).filter((id) => Number.isFinite(id))
+        : [];
+
+    if (!bookingIds.length) {
+        return res.status(400).json({ message: 'booking_ids is required' });
+    }
+
+    const merchantId = process.env.PAYFAST_MERCHANT_ID || '10000100';
+    const merchantKey = process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a';
+    const passphrase = process.env.PAYFAST_PASSPHRASE || '';
+    const sandbox = String(process.env.PAYFAST_SANDBOX || 'true').toLowerCase() !== 'false';
+    const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+
+    try {
+        const placeholders = bookingIds.map(() => '?').join(',');
+        const bookings = await dbQuery(
+            `SELECT booking_id, total_amount
+             FROM bookings
+             WHERE user_id = ? AND booking_id IN (${placeholders})`,
+            [req.user.id, ...bookingIds]
+        );
+
+        if (bookings.length !== bookingIds.length) {
+            return res.status(404).json({ message: 'One or more bookings were not found' });
+        }
+
+        const totalAmount = bookings.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
+        if (totalAmount <= 0) {
+            return res.status(400).json({ message: 'Invalid booking amount' });
+        }
+
+        const transactionRef = `PF-${req.user.id}-${Date.now()}`;
+        const paymentInsert = await dbQuery(
+            `INSERT INTO payments (booking_id, user_id, amount, currency, status, transaction_ref)
+             VALUES (?, ?, ?, 'ZAR', 'pending', ?)`,
+            [bookingIds[0], req.user.id, totalAmount.toFixed(2), transactionRef]
+        );
+
+        const paymentId = paymentInsert.insertId;
+        const returnUrl = `${baseUrl}/api/payfast/return?payment_id=${paymentId}`;
+        const cancelUrl = `${baseUrl}/api/payfast/cancel?payment_id=${paymentId}`;
+        const notifyUrl = `${baseUrl}/api/payfast/notify`;
+
+        const payFastFields = {
+            merchant_id: merchantId,
+            merchant_key: merchantKey,
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
+            notify_url: notifyUrl,
+            m_payment_id: paymentId,
+            amount: totalAmount.toFixed(2),
+            item_name: `So Where To Booking (${bookingIds.length})`,
+            custom_str1: bookingIds.join(',')
+        };
+
+        const signature = buildPayFastSignature(payFastFields, passphrase);
+        const query = new URLSearchParams({ ...payFastFields, signature }).toString();
+        const host = sandbox ? 'https://sandbox.payfast.co.za/eng/process' : 'https://www.payfast.co.za/eng/process';
+        const paymentUrl = `${host}?${query}`;
+
+        res.status(201).json({
+            payment_id: paymentId,
+            payment_url: paymentUrl,
+            total_amount: totalAmount
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const handlePayFastNotify = async (req, res) => {
+    const paymentId = Number(req.body?.m_payment_id);
+    if (!Number.isFinite(paymentId)) {
+        return res.sendStatus(200);
+    }
+
+    try {
+        const payments = await dbQuery(
+            `SELECT payment_id, booking_id, amount, status
+             FROM payments
+             WHERE payment_id = ?`,
+            [paymentId]
+        );
+        if (!payments.length) return res.sendStatus(200);
+
+        const payment = payments[0];
+        const paymentStatus = String(req.body?.payment_status || '').toUpperCase();
+        const amountGross = Number(req.body?.amount_gross || 0);
+        const expectedAmount = Number(payment.amount || 0);
+        const amountMatches = amountGross > 0 && Math.abs(amountGross - expectedAmount) < 0.01;
+        const isSuccess = paymentStatus === 'COMPLETE' && amountMatches;
+        const newPaymentStatus = isSuccess ? 'success' : 'failed';
+
+        await dbQuery(
+            `UPDATE payments
+             SET status = ?,
+                 paid_at = ?,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE payment_id = ?`,
+            [newPaymentStatus, isSuccess ? new Date() : null, paymentId]
+        );
+
+        const bookingIdsFromPayload = String(req.body?.custom_str1 || '')
+            .split(',')
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value));
+        const bookingIds = bookingIdsFromPayload.length ? bookingIdsFromPayload : [Number(payment.booking_id)];
+        const placeholders = bookingIds.map(() => '?').join(',');
+
+        await dbQuery(
+            `UPDATE bookings
+             SET status = ?
+             WHERE booking_id IN (${placeholders})`,
+            [isSuccess ? 'confirmed' : 'cancelled', ...bookingIds]
+        );
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.sendStatus(500);
+    }
+};
+
+export const getMyPayFastPayment = async (req, res) => {
+    try {
+        const rows = await dbQuery(
+            `SELECT payment_id, booking_id, amount, currency, status, transaction_ref, paid_at, created_at, updated_at
+             FROM payments
+             WHERE payment_id = ? AND user_id = ?`,
+            [req.params.paymentId, req.user.id]
+        );
+        if (!rows.length) return res.status(404).json({ message: 'Payment not found' });
+        res.json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const handlePayFastReturn = async (req, res) => {
+    const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const redirectUrl = new URL('/checkout', frontendBase);
+    redirectUrl.searchParams.set('payfast', 'success');
+    if (req.query.payment_id) {
+        redirectUrl.searchParams.set('payment_id', String(req.query.payment_id));
+    }
+    res.redirect(redirectUrl.toString());
+};
+
+export const handlePayFastCancel = async (req, res) => {
+    const paymentId = Number(req.query.payment_id);
+    if (Number.isFinite(paymentId)) {
+        try {
+            await dbQuery(
+                `UPDATE payments
+                 SET status = 'failed', updated_at = CURRENT_TIMESTAMP
+                 WHERE payment_id = ? AND status = 'pending'`,
+                [paymentId]
+            );
+        } catch {
+            // no-op: redirect should still happen
+        }
+    }
+
+    const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const redirectUrl = new URL('/checkout', frontendBase);
+    redirectUrl.searchParams.set('payfast', 'cancel');
+    if (req.query.payment_id) {
+        redirectUrl.searchParams.set('payment_id', String(req.query.payment_id));
+    }
+    res.redirect(redirectUrl.toString());
 };
 
 export const createSupportTicket = async (req, res) => {

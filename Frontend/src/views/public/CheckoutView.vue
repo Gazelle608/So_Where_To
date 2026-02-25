@@ -3,6 +3,9 @@
     <div class="checkout-header">
       <h1 class="page-title">Almost <span>There</span>!</h1>
       <p class="page-subtitle">Your adventure is just a payment away</p>
+      <div class="checkout-timer" :class="{ warning: timeLeft <= 120 }">
+        Time left: {{ formattedTimeLeft }}
+      </div>
     </div>
 
     <div class="checkout-container">
@@ -15,11 +18,16 @@
         <div class="progress-line" :class="{ active: currentStep >= 2 }"></div>
         <div class="progress-step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
           <span class="step-number">2</span>
-          <span class="step-label">Payment</span>
+          <span class="step-label">Seats</span>
         </div>
         <div class="progress-line" :class="{ active: currentStep >= 3 }"></div>
         <div class="progress-step" :class="{ active: currentStep >= 3, completed: currentStep > 3 }">
           <span class="step-number">3</span>
+          <span class="step-label">Payment</span>
+        </div>
+        <div class="progress-line" :class="{ active: currentStep >= 4 }"></div>
+        <div class="progress-step" :class="{ active: currentStep >= 4, completed: currentStep > 4 }">
+          <span class="step-number">4</span>
           <span class="step-label">Confirm</span>
         </div>
       </div>
@@ -64,14 +72,77 @@
 
         <div class="step-actions">
           <button @click="currentStep = 2" class="btn btn-primary" :disabled="cartCount === 0">
-            Proceed to Payment
+            Continue to Seat Selection
           </button>
           <router-link to="/cart" class="btn btn-outline">Back to Cart</router-link>
         </div>
       </div>
 
-      <!-- Step 2: Payment Method -->
+      <!-- Step 2: Seat Selection -->
       <div v-else-if="currentStep === 2" class="checkout-step">
+        <h2 class="step-title">Choose Your Seats</h2>
+
+        <div class="seat-selection-card">
+          <div class="seat-selection-header">
+            <p class="seat-selection-subtitle">
+              Select {{ requiredSeatCount }} {{ requiredSeatCount === 1 ? 'seat' : 'seats' }} to continue.
+            </p>
+            <div class="seat-counter" :class="{ complete: seatSelectionComplete }">
+              {{ selectedSeats.length }} / {{ requiredSeatCount }} selected
+            </div>
+          </div>
+
+          <div class="seat-legend">
+            <div class="legend-item">
+              <div class="seat-sample available"></div>
+              <span>Available</span>
+            </div>
+            <div class="legend-item">
+              <div class="seat-sample selected"></div>
+              <span>Selected</span>
+            </div>
+            <div class="legend-item">
+              <div class="seat-sample taken"></div>
+              <span>Taken</span>
+            </div>
+          </div>
+
+          <div class="seat-map">
+            <div v-for="row in 8" :key="`row-${row}`" class="seat-row">
+              <span class="row-label">{{ String.fromCharCode(64 + row) }}</span>
+              <div class="seats">
+                <button
+                  v-for="col in 6"
+                  :key="`seat-${row}-${col}`"
+                  class="seat"
+                  :class="getSeatClass(row, col)"
+                  :disabled="isSeatTaken(row, col)"
+                  @click="toggleSeat(row, col)"
+                >
+                  {{ String.fromCharCode(64 + row) }}{{ col }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="selected-seats" v-if="selectedSeats.length">
+            <h4>Your Seats</h4>
+            <div class="selected-seat-list">
+              <span v-for="seat in selectedSeats" :key="seat" class="selected-seat-chip">{{ seat }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-actions">
+          <button @click="currentStep = 3" class="btn btn-primary" :disabled="!seatSelectionComplete">
+            Continue to Payment
+          </button>
+          <button @click="currentStep = 1" class="btn btn-outline">Back</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Payment Method -->
+      <div v-else-if="currentStep === 3" class="checkout-step">
         <h2 class="step-title">Choose Payment Method</h2>
         
         <div class="payment-methods">
@@ -206,12 +277,12 @@
           <button @click="processPayment" class="btn btn-primary" :disabled="!canProcessPayment">
             {{ paymentMethod === 'simulated' ? 'Complete Demo Payment' : 'Pay Now' }}
           </button>
-          <button @click="currentStep = 1" class="btn btn-outline">Back</button>
+          <button @click="currentStep = 2" class="btn btn-outline">Back</button>
         </div>
       </div>
 
-      <!-- Step 3: Confirmation -->
-      <div v-else-if="currentStep === 3" class="checkout-step confirmation">
+      <!-- Step 4: Confirmation -->
+      <div v-else-if="currentStep === 4" class="checkout-step confirmation">
         <div class="confirmation-icon">🎉</div>
         <h2 class="confirmation-title">Payment Successful!</h2>
         <p class="confirmation-message">
@@ -224,6 +295,7 @@
           <p><strong>Order Number:</strong> SWT-{{ orderReference }}</p>
           <p><strong>Total Paid:</strong> R{{ (cartTotal + 50).toLocaleString() }}</p>
           <p><strong>Payment Method:</strong> {{ formattedPaymentMethod }}</p>
+          <p><strong>Seat{{ selectedSeats.length === 1 ? '' : 's' }}:</strong> {{ selectedSeats.join(', ') || 'TBD' }}</p>
         </div>
 
         <div class="next-steps">
@@ -236,7 +308,7 @@
         </div>
 
         <div class="step-actions">
-          <router-link to="/profile" class="btn btn-primary">View My Bookings</router-link>
+          <router-link to="/bookings" class="btn btn-primary">View My Bookings</router-link>
           <router-link to="/" class="btn btn-outline">Back to Home</router-link>
         </div>
       </div>
@@ -246,6 +318,7 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
+import { apiService } from '@/services/api'
 
 export default {
   name: 'CheckoutView',
@@ -257,13 +330,24 @@ export default {
       expiryDate: '',
       cvv: '',
       cardName: '',
+      selectedSeats: [],
+      takenSeats: ['A1', 'A2', 'B3', 'B4', 'C5', 'D2', 'E1', 'F3', 'G4', 'H2'],
+      timeLeft: 600,
+      timerId: null,
       orderReference: Math.floor(Math.random() * 1000000).toString().padStart(6, '0'),
       processing: false
     }
   },
   computed: {
     ...mapGetters(['cartItems', 'cartCount', 'cartTotal']),
+    requiredSeatCount() {
+      return Math.max(1, Number(this.cartCount) || 1)
+    },
+    seatSelectionComplete() {
+      return this.selectedSeats.length === this.requiredSeatCount
+    },
     canProcessPayment() {
+      if (!this.seatSelectionComplete) return false
       if (this.paymentMethod === 'simulated') return true
       if (this.paymentMethod === 'card') {
         return this.cardNumber.length >= 16 && 
@@ -282,6 +366,11 @@ export default {
         simulated: 'Demo Mode'
       }
       return methods[this.paymentMethod] || this.paymentMethod
+    },
+    formattedTimeLeft() {
+      const mins = Math.floor(this.timeLeft / 60)
+      const secs = this.timeLeft % 60
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
     }
   },
   methods: {
@@ -308,29 +397,141 @@ export default {
       }
       this.expiryDate = value.substring(0, 5)
     },
+
+    seatId(row, col) {
+      return `${String.fromCharCode(64 + row)}${col}`
+    },
+
+    isSeatTaken(row, col) {
+      return this.takenSeats.includes(this.seatId(row, col))
+    },
+
+    getSeatClass(row, col) {
+      const id = this.seatId(row, col)
+      if (this.selectedSeats.includes(id)) return 'selected'
+      if (this.takenSeats.includes(id)) return 'taken'
+      return 'available'
+    },
+
+    toggleSeat(row, col) {
+      const id = this.seatId(row, col)
+      if (this.takenSeats.includes(id)) return
+
+      const selectedIndex = this.selectedSeats.indexOf(id)
+      if (selectedIndex > -1) {
+        this.selectedSeats.splice(selectedIndex, 1)
+        return
+      }
+
+      if (this.selectedSeats.length >= this.requiredSeatCount) return
+      this.selectedSeats.push(id)
+    },
+
+    startCheckoutTimer() {
+      if (this.timerId || this.currentStep >= 4) return
+      this.timerId = setInterval(() => {
+        if (this.currentStep >= 4) {
+          this.stopCheckoutTimer()
+          return
+        }
+
+        if (this.timeLeft <= 0) {
+          this.stopCheckoutTimer()
+          alert('Checkout session expired. Please start again.')
+          this.$router.push('/cart')
+          return
+        }
+
+        this.timeLeft -= 1
+      }, 1000)
+    },
+
+    stopCheckoutTimer() {
+      if (this.timerId) {
+        clearInterval(this.timerId)
+        this.timerId = null
+      }
+    },
     
-    processPayment() {
+    async processPayment() {
       this.processing = true
       
-      // Simulate payment processing
-      setTimeout(() => {
+      try {
+        if (this.paymentMethod === 'payfast') {
+          const checkoutResult = await this.checkout({
+            travelers_count: this.requiredSeatCount,
+            selected_seats: this.selectedSeats
+          })
+
+          if (!checkoutResult?.success) {
+            throw new Error(checkoutResult?.error || 'Checkout failed')
+          }
+
+          const bookingIds = Array.isArray(checkoutResult?.data?.booking_ids)
+            ? checkoutResult.data.booking_ids
+            : []
+
+          if (!bookingIds.length) {
+            throw new Error('No bookings were created for payment')
+          }
+
+          const payFastResponse = await apiService.payfast.checkout({
+            booking_ids: bookingIds
+          })
+
+          const paymentUrl = payFastResponse?.data?.payment_url
+          if (!paymentUrl) {
+            throw new Error('Unable to start PayFast payment')
+          }
+
+          window.location.href = paymentUrl
+          return
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1200))
+        const result = await this.checkout({
+          travelers_count: this.requiredSeatCount,
+          selected_seats: this.selectedSeats
+        })
+
+        if (!result?.success) {
+          throw new Error(result?.error || 'Checkout failed')
+        }
+
+        this.currentStep = 4
+        this.stopCheckoutTimer()
+      } catch (error) {
+        alert(error.message || 'Payment failed. Please try again.')
+      } finally {
         this.processing = false
-        this.currentStep = 3
-        
-        // Clear cart after successful payment
-        this.clearCart()
-        
-        // Here you would call your actual checkout action
-        // this.checkout({
-        //   method: this.paymentMethod,
-        //   details: this.paymentMethod === 'card' ? {
-        //     cardNumber: this.cardNumber,
-        //     expiry: this.expiryDate,
-        //     name: this.cardName
-        //   } : null
-        // })
-      }, 2000)
+      }
     }
+  },
+  async mounted() {
+    this.startCheckoutTimer()
+
+    if (this.$route.query.payfast === 'cancel') {
+      alert('PayFast payment was cancelled. You can try again.')
+      this.currentStep = 2
+      return
+    }
+
+    if (this.$route.query.payfast !== 'success') return
+    const paymentId = this.$route.query.payment_id
+    if (!paymentId) return
+
+    try {
+      const response = await apiService.payfast.getPayment(paymentId)
+      if (response?.data?.status === 'success') {
+        this.currentStep = 4
+        this.stopCheckoutTimer()
+      }
+    } catch {
+      // keep checkout view state unchanged when verification fails
+    }
+  },
+  beforeUnmount() {
+    this.stopCheckoutTimer()
   }
 }
 </script>
@@ -345,6 +546,23 @@ export default {
 .checkout-header {
   text-align: center;
   margin-bottom: 40px;
+}
+
+.checkout-timer {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #2f5f96;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.checkout-timer.warning {
+  background: #fff1f1;
+  color: #dc3545;
 }
 
 .page-title {
@@ -565,6 +783,168 @@ export default {
 
 .total-price {
   color: #FF6B6B;
+}
+
+/* Seat Selection */
+.seat-selection-card {
+  background: #F9F9F9;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.seat-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.seat-selection-subtitle {
+  margin: 0;
+  color: #666666;
+}
+
+.seat-counter {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #fff1f1;
+  color: #FF6B6B;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.seat-counter.complete {
+  background: #ecf9f0;
+  color: #28A745;
+}
+
+.seat-legend {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666666;
+  font-size: 0.9rem;
+}
+
+.seat-sample {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #E0E0E0;
+}
+
+.seat-sample.available {
+  background: #e0e0e0;
+  border-color: #28A745;
+}
+
+.seat-sample.selected {
+  background: #4A6FA5;
+  border-color: #4A6FA5;
+}
+
+.seat-sample.taken {
+  background: #DC3545;
+  border-color: #DC3545;
+  opacity: 0.35;
+}
+
+.seat-map {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.seat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.row-label {
+  width: 26px;
+  color: #666666;
+  font-weight: 600;
+}
+
+.seats {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.seat {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 2px solid #E0E0E0;
+  background: #ffffff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.seat.available {
+  background: #e0e0e0;
+  border-color: #28A745;
+}
+
+.seat.available:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #28A745;
+  border-color: #28A745;
+  color: #ffffff;
+}
+
+.seat.selected {
+  background: #4A6FA5;
+  border-color: #4A6FA5;
+  color: #ffffff;
+}
+
+.seat.taken {
+  background: #DC3545;
+  border-color: #DC3545;
+  color: #ffffff;
+  opacity: 0.35;
+}
+
+.seat:disabled {
+  cursor: not-allowed;
+}
+
+.selected-seats {
+  margin-top: 20px;
+}
+
+.selected-seats h4 {
+  margin: 0 0 10px;
+  color: #333333;
+  font-size: 1rem;
+}
+
+.selected-seat-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selected-seat-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #2f5f96;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 
 /* Payment Methods */
@@ -920,6 +1300,17 @@ export default {
     flex-direction: column;
     text-align: center;
     gap: 10px;
+  }
+
+  .seat-selection-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .seat {
+    width: 32px;
+    height: 32px;
+    font-size: 0.7rem;
   }
   
   .form-row {

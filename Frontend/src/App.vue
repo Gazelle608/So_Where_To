@@ -198,9 +198,6 @@ export default {
     // Initialize app
     const initializeApp = async () => {
       try {
-        // Initialize store
-        await store.dispatch('init')
-        
         // Set theme
         if (store.state.isDarkMode) {
           document.documentElement.classList.add('dark-mode')

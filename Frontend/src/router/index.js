@@ -9,6 +9,7 @@ import SpinView from '@/views/public/SpinView.vue'
 import ContactView from '@/views/public/ContactView.vue'
 import LoginView from '@/views/public/LoginView.vue'
 import RegisterView from '@/views/public/RegisterView.vue'
+import CheckoutView from '@/views/public/CheckoutView.vue'
 
 // Protected Views
 import DashboardView from '@/views/protected/DashboardView.vue'
@@ -93,6 +94,12 @@ const routes = [
     path: '/cart',
     name: 'cart',
     component: CartView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/checkout',
+    name: 'checkout',
+    component: CheckoutView,
     meta: { requiresAuth: true }
   },
 

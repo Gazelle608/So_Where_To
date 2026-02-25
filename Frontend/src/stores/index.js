@@ -1,10 +1,14 @@
 // stores/index.js
 import { createStore } from 'vuex'
 import auth from './auth.store'
+import cart from './cart.store'
+import user from './user.store'
 
 const store = createStore({
   modules: {
-    auth
+    auth,
+    cart,
+    user
   },
   
   state: {
@@ -42,6 +46,8 @@ const store = createStore({
   actions: {
     async init({ dispatch }) {
       await dispatch('auth/init')
+      await dispatch('fetchDestinations')
+      await dispatch('fetchCart')
     }
   },
 

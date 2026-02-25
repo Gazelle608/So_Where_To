@@ -38,19 +38,25 @@
       </button>
     </div>
 
+    <div v-if="isLoading" class="loading">Loading destinations...</div>
+    <div v-else-if="filteredDestinations.length === 0" class="loading">No destinations found.</div>
+
     <!-- Destinations Grid -->
-    <div class="destinations-grid">
+    <div v-else class="destinations-grid">
       <FlightTicketCard 
         v-for="dest in filteredDestinations" 
         :key="dest.id"
         :destination="dest"
+        @book="bookDestination"
       />
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import FlightTicketCard from '@/components/common/ui/FlightTicketCard.vue'
 
 export default {
@@ -59,193 +65,71 @@ export default {
     FlightTicketCard
   },
   setup() {
+    const store = useStore()
+    const router = useRouter()
     const activeFilter = ref('all')
 
-    // All destinations with new prices
-    const destinations = ref([
-      // Revealed Destinations (R350 - R600)
-      {
-        id: 1,
-        city: 'Cape Town',
-        code: 'CPT',
-        price: 450,
-        date: '15 MAR 2026',
-        gate: 'A12',
-        seat: '23A',
-        flight: 'SWT101',
-        airline: 'SWT',
-        revealed: true,
-        type: 'revealed',
-        image: '/images/cape-town.jpg'
-      },
-      {
-        id: 2,
-        city: 'Durban',
-        code: 'DUR',
-        price: 380,
-        date: '20 MAR 2026',
-        gate: 'B4',
-        seat: '15C',
-        flight: 'SWT102',
-        airline: 'SWT',
-        revealed: true,
-        type: 'revealed',
-        image: '/images/durban.jpg'
-      },
-      {
-        id: 3,
-        city: 'Johannesburg',
-        code: 'JNB',
-        price: 420,
-        date: '25 MAR 2026',
-        gate: 'C7',
-        seat: '8F',
-        flight: 'SWT103',
-        airline: 'SWT',
-        revealed: true,
-        type: 'revealed',
-        image: '/images/joburg.jpg'
-      },
-      {
-        id: 4,
-        city: 'Port Elizabeth',
-        code: 'PLZ',
-        price: 390,
-        date: '28 MAR 2026',
-        gate: 'A3',
-        seat: '12D',
-        flight: 'SWT104',
-        airline: 'SWT',
-        revealed: true,
-        type: 'revealed',
-        image: '/images/pe.jpg'
-      },
-      {
-        id: 5,
-        city: 'Bloemfontein',
-        code: 'BFN',
-        price: 350,
-        date: '2 APR 2026',
-        gate: 'B9',
-        seat: '19B',
-        flight: 'SWT105',
-        airline: 'SWT',
-        revealed: true,
-        type: 'revealed',
-        image: '/images/bloem.jpg'
-      },
-      
-      // Mystery Destinations (R700 - R900)
-      {
-        id: 6,
-        code: '???',
-        price: 750,
-        date: '5 APR 2026',
-        gate: 'TBD',
-        seat: 'TBD',
-        flight: 'SWT201',
-        revealed: false,
-        type: 'mystery',
-        region: 'Asia',
-        image: '/images/mystery-asia.jpg'
-      },
-      {
-        id: 7,
-        code: '???',
-        price: 820,
-        date: '12 APR 2026',
-        gate: 'TBD',
-        seat: 'TBD',
-        flight: 'SWT202',
-        revealed: false,
-        type: 'mystery',
-        region: 'Europe',
-        image: '/images/mystery-europe.jpg'
-      },
-      {
-        id: 8,
-        code: '???',
-        price: 890,
-        date: '19 APR 2026',
-        gate: 'TBD',
-        seat: 'TBD',
-        flight: 'SWT203',
-        revealed: false,
-        type: 'mystery',
-        region: 'Africa',
-        image: '/images/mystery-africa.jpg'
-      },
-      {
-        id: 9,
-        code: '???',
-        price: 780,
-        date: '26 APR 2026',
-        gate: 'TBD',
-        seat: 'TBD',
-        flight: 'SWT204',
-        revealed: false,
-        type: 'mystery',
-        region: 'Americas',
-        image: '/images/mystery-americas.jpg'
-      },
-      
-      // Special Events (R850 - R950)
-      {
-        id: 10,
-        city: 'Paris',
-        code: 'CDG',
-        price: 920,
-        date: '14 FEB 2026',
-        gate: 'D2',
-        seat: '7A',
-        flight: 'LOVE101',
-        airline: 'SWT',
-        revealed: true,
-        type: 'events',
-        event: 'Valentines Day Special',
-        image: '/images/paris-valentine.jpg'
-      },
-      {
-        id: 11,
-        city: 'Venice',
-        code: 'VCE',
-        price: 890,
-        date: '14 FEB 2026',
-        gate: 'E5',
-        seat: '12C',
-        flight: 'LOVE102',
-        airline: 'SWT',
-        revealed: true,
-        type: 'events',
-        event: 'Valentines Day Special',
-        image: '/images/venice.jpg'
-      },
-      {
-        id: 12,
-        code: '???',
-        price: 850,
-        date: '14 FEB 2026',
-        gate: 'TBD',
-        seat: 'TBD',
-        flight: 'LOVE103',
-        revealed: false,
-        type: 'events',
-        event: 'Mystery Valentines',
-        region: 'Romantic Europe',
-        image: '/images/mystery-romance.jpg'
-      }
-    ])
+    const destinations = computed(() => store.getters.destinations || [])
+    const isLoading = computed(() => store.getters.destinationsLoading)
 
     const filteredDestinations = computed(() => {
+      if (!destinations.value.length) return []
+
       if (activeFilter.value === 'all') {
         return destinations.value
       }
-      return destinations.value.filter(d => d.type === activeFilter.value)
+      if (activeFilter.value === 'revealed') {
+        return destinations.value.filter((d) => d.revealed)
+      }
+      if (activeFilter.value === 'mystery') {
+        return destinations.value.filter((d) => !d.revealed)
+      }
+      if (activeFilter.value === 'events') {
+        return destinations.value.filter((d) => d.is_featured)
+      }
+      return destinations.value
     })
+
+    onMounted(async () => {
+      await store.dispatch('fetchDestinations')
+    })
+
+    const bookDestination = async (destination) => {
+      if (!store.getters['auth/isAuthenticated']) {
+        router.push({ name: 'login', query: { redirect: '/destinations' } })
+        return
+      }
+
+      try {
+        const result = await store.dispatch('addToCart', {
+          destination_id: destination.destination_id || destination.id,
+          quantity: 1,
+          unit_price: destination.price
+        })
+
+        if (!result?.success) {
+          throw new Error(result?.error || 'Failed to add destination to cart')
+        }
+
+        store.commit('SHOW_NOTIFICATION', {
+          message: `${destination.name || destination.city} added to your cart`,
+          type: 'success'
+        })
+
+        router.push('/cart')
+      } catch (error) {
+        store.commit('SHOW_NOTIFICATION', {
+          message: error?.message || 'Failed to add destination to cart',
+          type: 'error'
+        })
+      }
+    }
 
     return {
       activeFilter,
-      filteredDestinations
+      isLoading,
+      filteredDestinations,
+      bookDestination
     }
   }
 }
@@ -325,6 +209,13 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 30px;
+}
+
+.loading {
+  text-align: center;
+  color: #666;
+  font-size: 1.1rem;
+  margin-top: 20px;
 }
 
 /* Dark Mode */

@@ -224,7 +224,7 @@
                   v-for="dest in filteredDestinations" 
                   :key="dest.city"
                   class="destination-item"
-                  @click="addToBlacklist(dest.city)"
+                  @click="addToBlacklist(dest)"
                 >
                   <div class="destination-image" :style="{ backgroundImage: `url(${dest.image})` }"></div>
                   <span>{{ dest.city }}, {{ dest.country }}</span>
@@ -303,20 +303,24 @@ export default {
       wishlist: 15
     })
     
+    const profile = computed(() => store.getters['user/profile'] || {})
+    const storedPreferences = computed(() => store.getters['user/preferences'] || {})
+    const storedBlacklist = computed(() => store.getters['user/blacklist'] || [])
+
     // Form data
     const form = ref({
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      phone: '+27 12 345 6789',
-      city: 'Cape Town',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      city: '',
       country: 'South Africa',
-      dob: '1990-01-01',
-      passport: 'AB123456'
+      dob: '',
+      passport: ''
     })
     
     const preferences = ref({
-      airline: 'Emirates',
+      airline: '',
       accommodation: 'hostel',
       maxBudget: 1500,
       newsletter: true,
@@ -331,17 +335,15 @@ export default {
     })
     
     // Blacklist
-    const blacklist = ref(['Durban', 'Port Elizabeth'])
+    const blacklist = computed(() => storedBlacklist.value)
     const searchQuery = ref('')
     
-    const allDestinations = ref([
-      { city: 'Tokyo', country: 'Japan', image: '/images/tokyo.jpg' },
-      { city: 'Paris', country: 'France', image: '/images/paris.jpg' },
-      { city: 'New York', country: 'USA', image: '/images/nyc.jpg' },
-      { city: 'Cape Town', country: 'South Africa', image: '/images/cpt.jpg' },
-      { city: 'Bangkok', country: 'Thailand', image: '/images/bangkok.jpg' },
-      { city: 'Sydney', country: 'Australia', image: '/images/sydney.jpg' }
-    ])
+    const allDestinations = computed(() => (store.getters.destinations || []).map((dest) => ({
+      id: dest.destination_id || dest.id,
+      city: dest.name || dest.city,
+      country: dest.country || '',
+      image: dest.image_url || dest.image || ''
+    })))
     
     const filteredDestinations = computed(() => {
       if (!searchQuery.value) return allDestinations.value
@@ -352,8 +354,15 @@ export default {
       )
     })
     
-    const saveDetails = () => {
-      console.log('Saving details:', form.value)
+    const saveDetails = async () => {
+      const result = await store.dispatch('user/updateProfile', form.value)
+      if (!result?.success) {
+        store.commit('SHOW_NOTIFICATION', {
+          message: result?.error || 'Failed to update profile',
+          type: 'error'
+        })
+        return
+      }
       store.commit('SHOW_NOTIFICATION', {
         message: 'Profile updated successfully',
         type: 'success'
@@ -361,11 +370,27 @@ export default {
     }
     
     const resetDetails = () => {
-      // Reset to original values
+      form.value = {
+        firstName: profile.value.firstName || '',
+        lastName: profile.value.lastName || '',
+        email: profile.value.email || '',
+        phone: profile.value.phone || '',
+        city: profile.value.city || '',
+        country: profile.value.country || 'South Africa',
+        dob: profile.value.dateOfBirth || '',
+        passport: profile.value.passportNumber || ''
+      }
     }
     
-    const savePreferences = () => {
-      console.log('Saving preferences:', preferences.value)
+    const savePreferences = async () => {
+      const result = await store.dispatch('user/updatePreferences', preferences.value)
+      if (!result?.success) {
+        store.commit('SHOW_NOTIFICATION', {
+          message: result?.error || 'Failed to save preferences',
+          type: 'error'
+        })
+        return
+      }
       store.commit('SHOW_NOTIFICATION', {
         message: 'Preferences saved',
         type: 'success'
@@ -390,29 +415,57 @@ export default {
       password.value = { current: '', new: '', confirm: '' }
     }
     
-    const addToBlacklist = (city) => {
-      if (!blacklist.value.includes(city)) {
-        blacklist.value.push(city)
+    const addToBlacklist = async (destination) => {
+      const city = destination?.city
+      if (!city) return
+      const result = await store.dispatch('user/addToBlacklist', destination)
+      if (!result?.success) {
         store.commit('SHOW_NOTIFICATION', {
-          message: `Added ${city} to blacklist`,
-          type: 'success'
+          message: result?.error || `Failed to add ${city} to blacklist`,
+          type: 'error'
         })
+        return
       }
+      store.commit('SHOW_NOTIFICATION', {
+        message: `Added ${city} to blacklist`,
+        type: 'success'
+      })
     }
     
-    const removeFromBlacklist = (city) => {
-      const index = blacklist.value.indexOf(city)
-      if (index > -1) {
-        blacklist.value.splice(index, 1)
+    const removeFromBlacklist = async (city) => {
+      const result = await store.dispatch('user/removeFromBlacklist', city)
+      if (!result?.success) {
         store.commit('SHOW_NOTIFICATION', {
-          message: `Removed ${city} from blacklist`,
-          type: 'success'
+          message: result?.error || `Failed to remove ${city} from blacklist`,
+          type: 'error'
         })
+        return
       }
+      store.commit('SHOW_NOTIFICATION', {
+        message: `Removed ${city} from blacklist`,
+        type: 'success'
+      })
     }
     
-    onMounted(() => {
-      // Fetch user data
+    onMounted(async () => {
+      if (!allDestinations.value.length) {
+        await store.dispatch('fetchDestinations')
+      }
+      await store.dispatch('user/bootstrap')
+      form.value = {
+        firstName: profile.value.firstName || '',
+        lastName: profile.value.lastName || '',
+        email: profile.value.email || user.value?.email || '',
+        phone: profile.value.phone || '',
+        city: profile.value.city || '',
+        country: profile.value.country || 'South Africa',
+        dob: profile.value.dateOfBirth || '',
+        passport: profile.value.passportNumber || ''
+      }
+      preferences.value = {
+        ...preferences.value,
+        ...storedPreferences.value
+      }
     })
     
     return {
