@@ -268,7 +268,7 @@ export default {
       emit('locationSelected', destination)
     }
 
-    // 🔥 MAIN SPIN FUNCTION - Spins and picks random destination
+    // MAIN SPIN FUNCTION - Spins and picks random destination
     const spinGlobe = () => {
       return new Promise((resolve) => {
         if (isAnimating.value || !globe.value) {
@@ -302,7 +302,7 @@ export default {
           
           // Calculate new position - smooth rotation
           const newLng = (startLng + (360 * spins * progress)) % 360
-          const newLat = startLat + Math.sin(progress * Math.PI * 2) * 15 // Add some vertical movement
+          const newLat = startLat + Math.sin(progress * Math.PI * 2) * 15
           
           // Update globe position
           globe.value.pointOfView({
@@ -407,7 +407,7 @@ export default {
       top: popupPosition.value.top + 'px'
     }))
 
-    // 🔥 EXPOSE THE METHOD TO PARENT COMPONENT
+    // EXPOSE THE METHOD TO PARENT COMPONENT
     defineExpose({
       spinGlobe,
       resetView
