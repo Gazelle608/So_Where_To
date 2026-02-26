@@ -69,27 +69,66 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { apiService, apiHelpers } from '@/services/api'
+import { useStore } from 'vuex'
 
 export default {
   name: 'BookingsView',
   setup() {
     const router = useRouter()
+    const store = useStore()
     const bookings = ref([])
 
+    const mapBooking = (row) => ({
+      id: row.id || row.booking_id,
+      status: row.status || 'pending',
+      code: row.destination_name ? row.destination_name.slice(0, 3).toUpperCase() : '???',
+      city: row.destination_name || 'Mystery',
+      flight: `SWT${row.id || row.booking_id}`,
+      date: row.departure_date
+        ? new Date(row.departure_date).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'TBD',
+      seat: 'TBD',
+      price: Number(row.total_amount || row.price || 0),
+      destination_name: row.destination_name,
+      destination_id: row.destination_id
+    })
+
+    const loadBookings = async () => {
+      try {
+        const response = await apiService.bookings.getAll()
+        bookings.value = (Array.isArray(response.data) ? response.data : []).map(mapBooking)
+      } catch (error) {
+        store.commit('SHOW_NOTIFICATION', {
+          message: apiHelpers.getErrorMessage(error),
+          type: 'error'
+        })
+      }
+    }
+
     onMounted(() => {
-      // Load bookings from localStorage
-      const savedBookings = localStorage.getItem('user_bookings')
-      bookings.value = savedBookings ? JSON.parse(savedBookings) : []
+      loadBookings()
     })
 
     const viewBooking = (id) => {
       router.push(`/booking/${id}`)
     }
 
-    const cancelBooking = (id) => {
+    const cancelBooking = async (id) => {
       if (confirm('Are you sure you want to cancel this booking?')) {
-        bookings.value = bookings.value.filter(b => b.id !== id)
-        localStorage.setItem('user_bookings', JSON.stringify(bookings.value))
+        try {
+          await apiService.bookings.cancel(id)
+          await loadBookings()
+          store.commit('SHOW_NOTIFICATION', {
+            message: `Booking #${id} deleted`,
+            type: 'success'
+          })
+        } catch (error) {
+          store.commit('SHOW_NOTIFICATION', {
+            message: apiHelpers.getErrorMessage(error),
+            type: 'error'
+          })
+        }
       }
     }
 

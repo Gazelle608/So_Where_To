@@ -44,48 +44,8 @@
       </div>
     </div>
 
-    <!-- Seat Selection -->
-    <div class="seat-selection">
-      <h2>Select Your Seat</h2>
-      
-      <!-- Seat Legend -->
-      <div class="seat-legend">
-        <div class="legend-item">
-          <div class="seat-sample available"></div>
-          <span>Available</span>
-        </div>
-        <div class="legend-item">
-          <div class="seat-sample selected"></div>
-          <span>Your Selection</span>
-        </div>
-        <div class="legend-item">
-          <div class="seat-sample taken"></div>
-          <span>Taken</span>
-        </div>
-      </div>
-
-      <!-- Seat Map -->
-      <div class="seat-map">
-        <div v-for="row in 8" :key="row" class="seat-row">
-          <span class="row-label">{{ String.fromCharCode(64 + row) }}</span>
-          <div class="seats">
-            <button 
-              v-for="col in 6" 
-              :key="col"
-              class="seat"
-              :class="getSeatClass(row, col)"
-              @click="selectSeat(row, col)"
-              :disabled="isSeatTaken(row, col)"
-            >
-              {{ row }}{{ col }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Booking Summary -->
-    <div class="booking-summary" v-if="selectedSeat">
+    <div class="booking-summary">
       <h3>Booking Summary</h3>
       <div class="summary-row">
         <span>Flight:</span>
@@ -101,7 +61,7 @@
       </div>
       <div class="summary-row">
         <span>Seat:</span>
-        <span class="selected-seat">{{ selectedSeat }}</span>
+        <span class="selected-seat">{{ booking.seat || 'Selected during checkout' }}</span>
       </div>
       <div class="summary-row total">
         <span>Total:</span>
@@ -122,27 +82,25 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { apiService, apiHelpers } from '@/services/api'
+import { useStore } from 'vuex'
 
 export default {
   name: 'BookingDetailsView',
   setup() {
     const route = useRoute()
     const router = useRouter()
+    const store = useStore()
     
-    // Get booking from localStorage or route params
-    const booking = ref(JSON.parse(localStorage.getItem('selected_destination') || '{}'))
+    const booking = ref(null)
     
     // Timer (10 minutes = 600 seconds)
     const timeLeft = ref(600)
     const showTimeoutWarning = ref(false)
     const timeoutSeconds = ref(30)
     
-    // Seat selection
-    const selectedSeat = ref(null)
-    const takenSeats = ref(['A1', 'A2', 'B3', 'B4', 'C5', 'D2', 'E1', 'F3', 'G4', 'H2'])
-
     let timer = null
     let warningTimer = null
 
@@ -189,45 +147,49 @@ export default {
       clearInterval(warningTimer)
     }
 
-    // Seat selection
-    const getSeatClass = (row, col) => {
-      const seatId = `${String.fromCharCode(64 + row)}${col}`
-      if (selectedSeat.value === seatId) return 'selected'
-      if (takenSeats.value.includes(seatId)) return 'taken'
-      return 'available'
-    }
-
-    const isSeatTaken = (row, col) => {
-      const seatId = `${String.fromCharCode(64 + row)}${col}`
-      return takenSeats.value.includes(seatId)
-    }
-
-    const selectSeat = (row, col) => {
-      const seatId = `${String.fromCharCode(64 + row)}${col}`
-      if (!takenSeats.value.includes(seatId)) {
-        selectedSeat.value = seatId
+    const loadBooking = async () => {
+      try {
+        const response = await apiService.bookings.getOne(route.params.id)
+        const row = response.data || {}
+        booking.value = {
+          id: row.id || row.booking_id,
+          code: row.destination_name ? row.destination_name.slice(0, 3).toUpperCase() : '???',
+          city: row.destination_name || 'Mystery',
+          flight: `SWT${row.id || row.booking_id}`,
+          date: row.departure_date
+            ? new Date(row.departure_date).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
+            : 'TBD',
+          price: Number(row.total_amount || row.price || 0),
+          status: row.status || 'pending'
+        }
+      } catch (error) {
+        store.commit('SHOW_NOTIFICATION', {
+          message: apiHelpers.getErrorMessage(error),
+          type: 'error'
+        })
+        router.push('/bookings')
       }
     }
 
-    const confirmBooking = () => {
-      // Save booking
-      const bookings = JSON.parse(localStorage.getItem('user_bookings') || '[]')
-      bookings.push({
-        id: Date.now(),
-        ...booking.value,
-        seat: selectedSeat.value,
-        bookingDate: new Date().toISOString()
-      })
-      localStorage.setItem('user_bookings', JSON.stringify(bookings))
-      
-      // Clear selected destination
-      localStorage.removeItem('selected_destination')
-      
-      // Redirect to bookings page
-      router.push('/bookings')
+    const confirmBooking = async () => {
+      if (!booking.value?.id) return
+      try {
+        await apiService.bookings.update(booking.value.id, { status: 'confirmed' })
+        store.commit('SHOW_NOTIFICATION', {
+          message: `Booking #${booking.value.id} confirmed`,
+          type: 'success'
+        })
+        router.push('/bookings')
+      } catch (error) {
+        store.commit('SHOW_NOTIFICATION', {
+          message: apiHelpers.getErrorMessage(error),
+          type: 'error'
+        })
+      }
     }
 
     onMounted(() => {
+      loadBooking()
       startTimer()
     })
 
@@ -241,11 +203,7 @@ export default {
       timeLeft,
       showTimeoutWarning,
       timeoutSeconds,
-      selectedSeat,
       formatTime,
-      getSeatClass,
-      isSeatTaken,
-      selectSeat,
       confirmBooking,
       extendSession
     }
@@ -360,123 +318,6 @@ export default {
   color: #28A745;
 }
 
-/* Seat Selection */
-.seat-selection {
-  background: white;
-  border-radius: 16px;
-  padding: 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-}
-
-.seat-selection h2 {
-  color: #333;
-  margin-bottom: 20px;
-}
-
-.seat-legend {
-  display: flex;
-  gap: 30px;
-  margin-bottom: 30px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.seat-sample {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-}
-
-.seat-sample.available {
-  background: #e0e0e0;
-  border: 2px solid #28A745;
-}
-
-.seat-sample.selected {
-  background: #4A6FA5;
-  border: 2px solid #4A6FA5;
-}
-
-.seat-sample.taken {
-  background: #DC3545;
-  border: 2px solid #DC3545;
-  opacity: 0.3;
-}
-
-/* Seat Map */
-.seat-map {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.seat-row {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.row-label {
-  width: 30px;
-  font-weight: 600;
-  color: #666;
-}
-
-.seats {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
-.seat {
-  width: 40px;
-  height: 40px;
-  border: 2px solid;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.seat.available {
-  background: #e0e0e0;
-  border-color: #28A745;
-  color: #333;
-}
-
-.seat.available:hover:not(:disabled) {
-  background: #28A745;
-  color: white;
-  transform: scale(1.1);
-}
-
-.seat.selected {
-  background: #4A6FA5;
-  border-color: #4A6FA5;
-  color: white;
-}
-
-.seat.taken {
-  background: #DC3545;
-  border-color: #DC3545;
-  color: white;
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.seat:disabled {
-  cursor: not-allowed;
-}
-
 /* Booking Summary */
 .booking-summary {
   background: white;
@@ -569,13 +410,11 @@ export default {
 
 /* Dark Mode */
 :root.dark-mode .booking-header h1,
-:root.dark-mode .seat-selection h2,
 :root.dark-mode .booking-summary h3 {
   color: #F5F9FF;
 }
 
 :root.dark-mode .flight-info,
-:root.dark-mode .seat-selection,
 :root.dark-mode .booking-summary {
   background: #0B1E33;
   border: 1px solid #1A334D;
@@ -594,8 +433,7 @@ export default {
 
 :root.dark-mode .from .city,
 :root.dark-mode .to .city,
-:root.dark-mode .detail .label,
-:root.dark-mode .row-label {
+:root.dark-mode .detail .label {
   color: #B0C4DE;
 }
 
@@ -622,16 +460,6 @@ export default {
   
   .flight-details {
     grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .seat-legend {
-    flex-wrap: wrap;
-  }
-  
-  .seat {
-    width: 30px;
-    height: 30px;
-    font-size: 0.7rem;
   }
   
   .timeout-warning {

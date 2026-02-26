@@ -167,19 +167,20 @@ export const apiService = {
     verifyEmail: (token) => api.post('/auth/verify-email', { token }),
     forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
     resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
-    me: () => api.get('/auth/me'),
+    me: () => api.get('/me'),
     updateProfile: (data) => api.put('/auth/profile', data),
     changePassword: (data) => api.put('/auth/change-password', data)
   },
   
   // User endpoints
   user: {
-    getProfile: () => api.get('/user/profile'),
-    updateProfile: (data) => api.put('/user/profile', data),
-    getPreferences: () => api.get('/user/preferences'),
-    updatePreferences: (data) => api.put('/user/preferences', data),
-    getBlacklist: () => api.get('/user/blacklist'),
-    updateBlacklist: (data) => api.put('/user/blacklist', data),
+    getProfile: () => api.get('/me/profile'),
+    updateProfile: (data) => api.patch('/me/profile', data),
+    getPreferences: () => api.get('/me/preferences'),
+    updatePreferences: (data) => api.patch('/me/preferences', data),
+    getBlacklist: () => api.get('/me/blacklist'),
+    addToBlacklist: (data) => api.post('/me/blacklist', data),
+    removeFromBlacklist: (destinationId) => api.delete(`/me/blacklist/${destinationId}`),
     getWishlist: () => api.get('/user/wishlist'),
     addToWishlist: (itemId) => api.post('/user/wishlist', { itemId }),
     removeFromWishlist: (itemId) => api.delete(`/user/wishlist/${itemId}`),
@@ -197,9 +198,9 @@ export const apiService = {
     getAll: (params) => api.get('/bookings', { params }),
     getOne: (id) => api.get(`/bookings/${id}`),
     create: (data) => api.post('/bookings', data),
-    update: (id, data) => api.put(`/bookings/${id}`, data),
-    cancel: (id) => api.post(`/bookings/${id}/cancel`),
-    rebook: (id) => api.post(`/bookings/${id}/rebook`),
+    update: (id, data) => api.patch(`/bookings/${id}/status`, data),
+    cancel: (id) => api.delete(`/bookings/${id}`),
+    rebook: (id) => api.patch(`/bookings/${id}/status`, { status: 'pending' }),
     getItinerary: (id) => api.get(`/bookings/${id}/itinerary`, { responseType: 'blob' })
   },
   
@@ -236,6 +237,12 @@ export const apiService = {
     process: (data) => api.post('/payment/process', data),
     verify: (paymentId) => api.get(`/payment/verify/${paymentId}`),
     getMethods: () => api.get('/payment/methods')
+  },
+
+  // PayFast endpoints
+  payfast: {
+    checkout: (data) => api.post('/payfast/checkout', data),
+    getPayment: (paymentId) => api.get(`/payfast/payments/${paymentId}`)
   },
   
   // Support endpoints
