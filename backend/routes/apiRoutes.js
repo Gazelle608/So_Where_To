@@ -3,6 +3,7 @@ import authenticateToken from '../middleware/authMiddleware.js';
 import {
     addMyBlacklistItem,
     addOrUpdateCartItem,
+    createMysteryDestination,
     checkoutCart,
     clearCart,
     createBooking,
@@ -13,12 +14,14 @@ import {
     createSpinOffer,
     createSupportTicket,
     deleteMyAccount,
+    deleteMysteryDestination,
     deleteMyBooking,
     deleteDestination,
     deletePaymentMethod,
     getDestinationById,
     getHelpTopicBySlug,
     getMe,
+    getMysteryDestinationById,
     getMyBookingById,
     getMyBlacklist,
     getMyPayFastPayment,
@@ -32,6 +35,7 @@ import {
     listFaqs,
     listHelpTopics,
     listMyBookings,
+    listMysteryDestinations,
     listMyPaymentMethods,
     listMyPayments,
     listMySpinOffers,
@@ -47,6 +51,7 @@ import {
     updateBookingStatus,
     updateCartItemQuantity,
     updateDestination,
+    updateMysteryDestination,
     updateSpinOfferStatus,
     upsertMyPreferences,
     upsertMyProfile
@@ -59,6 +64,8 @@ router.get('/destinations/featured', listFeaturedDestinations);
 router.get('/destinations/region/:region', listDestinationsByRegion);
 router.get('/destinations/search', searchDestinations);
 router.get('/destinations/:id', getDestinationById);
+router.get('/mystery-destinations', listMysteryDestinations);
+router.get('/mystery-destinations/:id', getMysteryDestinationById);
 router.get('/faqs', listFaqs);
 router.get('/help-topics', listHelpTopics);
 router.get('/help-topics/:slug', getHelpTopicBySlug);
@@ -119,5 +126,8 @@ router.post('/me/support-tickets', authenticateToken, createSupportTicket);
 router.post('/admin/destinations', authenticateToken, createDestination);
 router.patch('/admin/destinations/:id', authenticateToken, updateDestination);
 router.delete('/admin/destinations/:id', authenticateToken, deleteDestination);
+router.post('/admin/mystery-destinations', authenticateToken, createMysteryDestination);
+router.patch('/admin/mystery-destinations/:id', authenticateToken, updateMysteryDestination);
+router.delete('/admin/mystery-destinations/:id', authenticateToken, deleteMysteryDestination);
 
 export default router;

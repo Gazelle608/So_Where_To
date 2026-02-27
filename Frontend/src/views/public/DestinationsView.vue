@@ -75,6 +75,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import FlightTicketCard from '@/components/common/ui/FlightTicketCard.vue'
+import { apiService } from '@/services/api'
 
 export default {
   name: 'DestinationsView',
@@ -168,11 +169,33 @@ export default {
     const fetchDestinations = async () => {
       isLoading.value = true
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800))
-        destinations.value = allDestinations
+        const revealedDestinations = allDestinations.filter((destination) => destination.revealed === true)
+
+        const mysteryResponse = await apiService.mysteryDestinations.getAll({
+          revealed: 0,
+          limit: 200
+        })
+
+        const mysteryDestinations = (Array.isArray(mysteryResponse.data) ? mysteryResponse.data : []).map((row) => ({
+          id: row.destination_id,
+          destination_id: row.destination_id,
+          name: row.name || 'Mystery Destination',
+          city: row.name || 'Mystery Destination',
+          country: '',
+          region: row.region || '',
+          price: Number(row.price || 0),
+          days: Number(row.days || 0),
+          tags: Array.isArray(row.tags) ? row.tags : [],
+          revealed: Boolean(row.revealed),
+          lat: Number(row.latitude || 0),
+          lng: Number(row.longitude || 0),
+          image: row.image_url || ''
+        }))
+
+        destinations.value = [...revealedDestinations, ...mysteryDestinations]
       } catch (error) {
         console.error('Failed to fetch destinations:', error)
+        destinations.value = allDestinations
       } finally {
         isLoading.value = false
       }
@@ -234,7 +257,7 @@ export default {
     return {
       activeFilter,
       isLoading,
-      destinations: destinations.value,
+      destinations,
       filteredDestinations,
       bookDestination
     }
