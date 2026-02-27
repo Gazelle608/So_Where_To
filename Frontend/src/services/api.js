@@ -212,6 +212,11 @@ export const apiService = {
     getByRegion: (region) => api.get(`/destinations/region/${region}`),
     search: (query) => api.get('/destinations/search', { params: { q: query } })
   },
+
+  mysteryDestinations: {
+    getAll: (params) => api.get('/mystery-destinations', { params }),
+    getOne: (id) => api.get(`/mystery-destinations/${id}`)
+  },
   
   // Spin/Offers endpoints
   spin: {

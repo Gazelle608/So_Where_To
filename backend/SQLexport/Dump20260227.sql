@@ -74,7 +74,7 @@ CREATE TABLE `bookings` (
   CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `bookings_ibfk_2` FOREIGN KEY (`offer_id`) REFERENCES `spin_offers` (`offer_id`) ON DELETE SET NULL,
   CONSTRAINT `bookings_ibfk_3` FOREIGN KEY (`destination_id`) REFERENCES `destinations` (`destination_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -106,7 +106,7 @@ CREATE TABLE `cart_items` (
   KEY `destination_id` (`destination_id`),
   CONSTRAINT `cart_items_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `cart_items_ibfk_2` FOREIGN KEY (`destination_id`) REFERENCES `destinations` (`destination_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -169,7 +169,7 @@ CREATE TABLE `destinations` (
   `latitude` decimal(10,8) DEFAULT NULL,
   `longitude` decimal(11,8) DEFAULT NULL,
   PRIMARY KEY (`destination_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -178,7 +178,7 @@ CREATE TABLE `destinations` (
 
 LOCK TABLES `destinations` WRITE;
 /*!40000 ALTER TABLE `destinations` DISABLE KEYS */;
-INSERT INTO `destinations` VALUES (1,'Tokyo','Japan','Asia','/images/tokyo.jpg',1299.00,5,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',35.67620000,139.65030000),(2,'Kyoto','Japan','Asia','/images/kyoto.jpg',1199.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',35.01160000,135.76810000),(3,'Osaka','Japan','Asia','/images/osaka.jpg',1099.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',34.69370000,135.50230000),(4,'Seoul','South Korea','Asia','/images/seoul.jpg',1199.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',37.56650000,126.97800000),(5,'Busan','South Korea','Asia','/images/busan.jpg',1099.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',35.17960000,129.07560000),(6,'Beijing','China','Asia','/images/beijing.jpg',1099.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',39.90420000,116.40740000),(7,'Shanghai','China','Asia','/images/shanghai.jpg',1199.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',31.23040000,121.47370000),(8,'Hong Kong','China','Asia','/images/hongkong.jpg',1299.00,5,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',22.31930000,114.16940000),(9,'Bangkok','Thailand','Asia','/images/bangkok.jpg',899.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',13.75630000,100.50180000),(10,'Chiang Mai','Thailand','Asia','/images/chiangmai.jpg',849.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',18.78830000,98.98530000),(11,'Phuket','Thailand','Asia','/images/phuket.jpg',899.00,5,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',7.88040000,98.39230000),(12,'Singapore','Singapore','Asia','/images/singapore.jpg',1199.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',1.35210000,103.81980000),(13,'Kuala Lumpur','Malaysia','Asia','/images/kl.jpg',949.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',3.13900000,101.68690000),(14,'Hanoi','Vietnam','Asia','/images/hanoi.jpg',849.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',21.02850000,105.85420000),(15,'Ho Chi Minh City','Vietnam','Asia','/images/hcmc.jpg',849.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',10.82310000,106.62970000),(16,'Paris','France','Europe','/images/paris.jpg',999.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',48.85660000,2.35220000),(17,'London','UK','Europe','/images/london.jpg',1099.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',51.50740000,-0.12780000),(18,'Rome','Italy','Europe','/images/rome.jpg',949.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',41.90280000,12.49640000),(19,'Venice','Italy','Europe','/images/venice.jpg',999.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',45.44080000,12.31550000),(20,'Florence','Italy','Europe','/images/florence.jpg',949.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',43.76960000,11.25580000),(21,'Barcelona','Spain','Europe','/images/barcelona.jpg',899.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',41.38510000,2.17340000),(22,'Madrid','Spain','Europe','/images/madrid.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',40.41680000,-3.70380000),(23,'Amsterdam','Netherlands','Europe','/images/amsterdam.jpg',949.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',52.36760000,4.90410000),(24,'Berlin','Germany','Europe','/images/berlin.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',52.52000000,13.40500000),(25,'Munich','Germany','Europe','/images/munich.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',48.13510000,11.58200000),(26,'Vienna','Austria','Europe','/images/vienna.jpg',949.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',48.20820000,16.37380000),(27,'Prague','Czech Republic','Europe','/images/prague.jpg',849.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',50.07550000,14.43780000),(28,'Budapest','Hungary','Europe','/images/budapest.jpg',849.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',47.49790000,19.04020000),(29,'Lisbon','Portugal','Europe','/images/lisbon.jpg',849.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',38.72230000,-9.13930000),(30,'Dublin','Ireland','Europe','/images/dublin.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',53.34980000,-6.26030000),(31,'Cape Town','South Africa','Africa','/images/capetown.jpg',799.00,4,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-33.92490000,18.42410000),(32,'Johannesburg','South Africa','Africa','/images/johannesburg.jpg',749.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-26.20410000,28.04730000),(33,'Durban','South Africa','Africa','/images/durban.jpg',749.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-29.85870000,31.02180000),(34,'Marrakech','Morocco','Africa','/images/marrakech.jpg',899.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',31.62950000,-7.98110000),(35,'Cairo','Egypt','Africa','/images/cairo.jpg',949.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',30.04440000,31.23570000),(36,'Nairobi','Kenya','Africa','/images/nairobi.jpg',999.00,6,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-1.29210000,36.82190000),(37,'Zanzibar','Tanzania','Africa','/images/zanzibar.jpg',1099.00,6,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-6.16590000,39.20260000),(38,'Victoria Falls','Zimbabwe','Africa','/images/vicfalls.jpg',999.00,5,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-17.92430000,25.85690000),(39,'Mauritius','Mauritius','Africa','/images/mauritius.jpg',1199.00,7,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-20.34840000,57.55220000),(40,'Seychelles','Seychelles','Africa','/images/seychelles.jpg',1299.00,7,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-4.67960000,55.49200000),(41,'New York','USA','Americas','/images/nyc.jpg',1199.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',40.71280000,-74.00600000),(42,'Los Angeles','USA','Americas','/images/la.jpg',1199.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',34.05220000,-118.24370000),(43,'San Francisco','USA','Americas','/images/sf.jpg',1199.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',37.77490000,-122.41940000),(44,'Chicago','USA','Americas','/images/chicago.jpg',1099.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',41.87810000,-87.62980000),(45,'Miami','USA','Americas','/images/miami.jpg',1099.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',25.76170000,-80.19180000),(46,'Cancun','Mexico','Americas','/images/cancun.jpg',999.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',21.16190000,-86.85150000),(47,'Mexico City','Mexico','Americas','/images/mexicocity.jpg',949.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',19.43260000,-99.13320000),(48,'Rio de Janeiro','Brazil','Americas','/images/rio.jpg',1099.00,6,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-22.90680000,-43.17290000),(49,'Buenos Aires','Argentina','Americas','/images/buenosaires.jpg',999.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-34.60370000,-58.38160000),(50,'Lima','Peru','Americas','/images/lima.jpg',949.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-12.04640000,-77.04280000),(51,'Sydney','Australia','Oceania','/images/sydney.jpg',1499.00,7,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-33.86880000,151.20930000),(52,'Melbourne','Australia','Oceania','/images/melbourne.jpg',1399.00,6,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-37.81360000,144.96310000),(53,'Auckland','New Zealand','Oceania','/images/auckland.jpg',1399.00,6,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-36.84850000,174.76330000),(54,'Queenstown','New Zealand','Oceania','/images/queenstown.jpg',1499.00,6,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-45.03120000,168.66260000),(55,'Fiji','Fiji','Oceania','/images/fiji.jpg',1399.00,7,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-17.71340000,178.06500000);
+INSERT INTO `destinations` VALUES (1,'Tokyo','Japan','Asia','/images/tokyo.jpg',1299.00,5,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',35.67620000,139.65030000),(2,'Kyoto','Japan','Asia','/images/kyoto.jpg',1199.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',35.01160000,135.76810000),(3,'Osaka','Japan','Asia','/images/osaka.jpg',1099.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',34.69370000,135.50230000),(4,'Seoul','South Korea','Asia','/images/seoul.jpg',1199.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',37.56650000,126.97800000),(5,'Busan','South Korea','Asia','/images/busan.jpg',1099.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',35.17960000,129.07560000),(6,'Beijing','China','Asia','/images/beijing.jpg',1099.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',39.90420000,116.40740000),(7,'Shanghai','China','Asia','/images/shanghai.jpg',1199.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',31.23040000,121.47370000),(8,'Hong Kong','China','Asia','/images/hongkong.jpg',1299.00,5,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',22.31930000,114.16940000),(9,'Bangkok','Thailand','Asia','/images/bangkok.jpg',899.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',13.75630000,100.50180000),(10,'Chiang Mai','Thailand','Asia','/images/chiangmai.jpg',849.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',18.78830000,98.98530000),(11,'Phuket','Thailand','Asia','/images/phuket.jpg',899.00,5,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',7.88040000,98.39230000),(12,'Singapore','Singapore','Asia','/images/singapore.jpg',1199.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',1.35210000,103.81980000),(13,'Kuala Lumpur','Malaysia','Asia','/images/kl.jpg',949.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',3.13900000,101.68690000),(14,'Hanoi','Vietnam','Asia','/images/hanoi.jpg',849.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',21.02850000,105.85420000),(15,'Ho Chi Minh City','Vietnam','Asia','/images/hcmc.jpg',849.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',10.82310000,106.62970000),(16,'Paris','France','Europe','/images/paris.jpg',999.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',48.85660000,2.35220000),(17,'London','UK','Europe','/images/london.jpg',1099.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',51.50740000,-0.12780000),(18,'Rome','Italy','Europe','/images/rome.jpg',949.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',41.90280000,12.49640000),(19,'Venice','Italy','Europe','/images/venice.jpg',999.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',45.44080000,12.31550000),(20,'Florence','Italy','Europe','/images/florence.jpg',949.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',43.76960000,11.25580000),(21,'Barcelona','Spain','Europe','/images/barcelona.jpg',899.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',41.38510000,2.17340000),(22,'Madrid','Spain','Europe','/images/madrid.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',40.41680000,-3.70380000),(23,'Amsterdam','Netherlands','Europe','/images/amsterdam.jpg',949.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',52.36760000,4.90410000),(24,'Berlin','Germany','Europe','/images/berlin.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',52.52000000,13.40500000),(25,'Munich','Germany','Europe','/images/munich.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',48.13510000,11.58200000),(26,'Vienna','Austria','Europe','/images/vienna.jpg',949.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',48.20820000,16.37380000),(27,'Prague','Czech Republic','Europe','/images/prague.jpg',849.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',50.07550000,14.43780000),(28,'Budapest','Hungary','Europe','/images/budapest.jpg',849.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',47.49790000,19.04020000),(29,'Lisbon','Portugal','Europe','/images/lisbon.jpg',849.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',38.72230000,-9.13930000),(30,'Dublin','Ireland','Europe','/images/dublin.jpg',899.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',53.34980000,-6.26030000),(31,'Cape Town','South Africa','Africa','/images/capetown.jpg',799.00,4,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-33.92490000,18.42410000),(32,'Johannesburg','South Africa','Africa','/images/johannesburg.jpg',749.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-26.20410000,28.04730000),(33,'Durban','South Africa','Africa','/images/durban.jpg',749.00,4,4.5,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-29.85870000,31.02180000),(34,'Marrakech','Morocco','Africa','/images/marrakech.jpg',899.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',31.62950000,-7.98110000),(35,'Cairo','Egypt','Africa','/images/cairo.jpg',949.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',30.04440000,31.23570000),(36,'Nairobi','Kenya','Africa','/images/nairobi.jpg',999.00,6,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-1.29210000,36.82190000),(37,'Zanzibar','Tanzania','Africa','/images/zanzibar.jpg',1099.00,6,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-6.16590000,39.20260000),(38,'Victoria Falls','Zimbabwe','Africa','/images/vicfalls.jpg',999.00,5,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-17.92430000,25.85690000),(39,'Mauritius','Mauritius','Africa','/images/mauritius.jpg',1199.00,7,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-20.34840000,57.55220000),(40,'Seychelles','Seychelles','Africa','/images/seychelles.jpg',1299.00,7,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-4.67960000,55.49200000),(41,'New York','USA','Americas','/images/nyc.jpg',1199.00,4,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',40.71280000,-74.00600000),(42,'Los Angeles','USA','Americas','/images/la.jpg',1199.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',34.05220000,-118.24370000),(43,'San Francisco','USA','Americas','/images/sf.jpg',1199.00,4,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',37.77490000,-122.41940000),(44,'Chicago','USA','Americas','/images/chicago.jpg',1099.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',41.87810000,-87.62980000),(45,'Miami','USA','Americas','/images/miami.jpg',1099.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',25.76170000,-80.19180000),(46,'Cancun','Mexico','Americas','/images/cancun.jpg',999.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',21.16190000,-86.85150000),(47,'Mexico City','Mexico','Americas','/images/mexicocity.jpg',949.00,4,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',19.43260000,-99.13320000),(48,'Rio de Janeiro','Brazil','Americas','/images/rio.jpg',1099.00,6,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-22.90680000,-43.17290000),(49,'Buenos Aires','Argentina','Americas','/images/buenosaires.jpg',999.00,5,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-34.60370000,-58.38160000),(50,'Lima','Peru','Americas','/images/lima.jpg',949.00,5,4.6,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-12.04640000,-77.04280000),(51,'Sydney','Australia','Oceania','/images/sydney.jpg',1499.00,7,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-33.86880000,151.20930000),(52,'Melbourne','Australia','Oceania','/images/melbourne.jpg',1399.00,6,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-37.81360000,144.96310000),(53,'Auckland','New Zealand','Oceania','/images/auckland.jpg',1399.00,6,4.7,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-36.84850000,174.76330000),(54,'Queenstown','New Zealand','Oceania','/images/queenstown.jpg',1499.00,6,4.9,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-45.03120000,168.66260000),(55,'Fiji','Fiji','Oceania','/images/fiji.jpg',1399.00,7,4.8,1,0,1,'2026-02-19 09:13:15','2026-02-19 09:13:15',-17.71340000,178.06500000),(59,'Mystery Americas',NULL,'Americas','https://images.unsplash.com/photo-1438401171849-74ac270044ee?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8c2VhdHRsZXxlbnwwfHwwfHx8MA%3D%3D',790.00,5,NULL,0,0,1,'2026-02-27 11:54:50','2026-02-27 11:54:50',10.00000000,-70.00000000);
 /*!40000 ALTER TABLE `destinations` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -266,6 +266,39 @@ CREATE TABLE `help_topics` (
 LOCK TABLES `help_topics` WRITE;
 /*!40000 ALTER TABLE `help_topics` DISABLE KEYS */;
 /*!40000 ALTER TABLE `help_topics` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `mystery_destinations`
+--
+
+DROP TABLE IF EXISTS `mystery_destinations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mystery_destinations` (
+  `destination_id` bigint NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `region` varchar(120) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `days` int NOT NULL,
+  `tags` json NOT NULL,
+  `revealed` tinyint(1) NOT NULL DEFAULT '0',
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `image_url` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`destination_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `mystery_destinations`
+--
+
+LOCK TABLES `mystery_destinations` WRITE;
+/*!40000 ALTER TABLE `mystery_destinations` DISABLE KEYS */;
+INSERT INTO `mystery_destinations` VALUES (56,'Mystery Asia','Asia',750.00,5,'[\"Mystery\", \"Adventure\", \"Culture\"]',0,25.00000000,105.00000000,'https://plus.unsplash.com/premium_photo-1661878434394-7f7e3d032b2a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YXNpYXxlbnwwfHwwfHx8MA%3D%3D','2026-02-27 10:12:03'),(57,'Mystery Europe','Europe',720.00,4,'[\"Mystery\", \"History\", \"Food\"]',0,50.00000000,10.00000000,'https://plus.unsplash.com/premium_photo-1661964149725-fbf14eabd38c?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Z3JlZWNlfGVufDB8fDB8fHww','2026-02-27 10:12:03'),(58,'Mystery Africa','Africa',680.00,5,'[\"Mystery\", \"Safari\", \"Adventure\"]',0,5.00000000,25.00000000,'https://plus.unsplash.com/premium_photo-1661936361131-c421746dcd0d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YWZyaWNhfGVufDB8fDB8fHww','2026-02-27 10:12:03'),(59,'Mystery Americas','Americas',790.00,5,'[\"Mystery\", \"Beach\", \"Culture\"]',0,10.00000000,-70.00000000,'https://images.unsplash.com/photo-1438401171849-74ac270044ee?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8c2VhdHRsZXxlbnwwfHwwfHx8MA%3D%3D','2026-02-27 10:12:03'),(60,'Mystery Oceania','Oceania',850.00,6,'[\"Mystery\", \"Island\", \"Adventure\"]',0,-20.00000000,150.00000000,'https://images.unsplash.com/photo-1598135753163-6167c1a1ad65?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8aGF3YWlpfGVufDB8fDB8fHww','2026-02-27 10:12:03');
+/*!40000 ALTER TABLE `mystery_destinations` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -541,7 +574,7 @@ CREATE TABLE `user_preferences` (
   PRIMARY KEY (`preference_id`),
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `user_preferences_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -550,6 +583,7 @@ CREATE TABLE `user_preferences` (
 
 LOCK TABLES `user_preferences` WRITE;
 /*!40000 ALTER TABLE `user_preferences` DISABLE KEYS */;
+INSERT INTO `user_preferences` VALUES (1,2,799.00,1500.00,NULL,'[]','2026-02-25 13:35:12','2026-02-25 13:35:12');
 /*!40000 ALTER TABLE `user_preferences` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -573,7 +607,7 @@ CREATE TABLE `user_profiles` (
   PRIMARY KEY (`profile_id`),
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `user_profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -582,6 +616,7 @@ CREATE TABLE `user_profiles` (
 
 LOCK TABLES `user_profiles` WRITE;
 /*!40000 ALTER TABLE `user_profiles` DISABLE KEYS */;
+INSERT INTO `user_profiles` VALUES (1,2,'+27 12 345 6789','1994-06-10','South Africa','Cape Town',NULL,'2026-02-25 13:37:23','2026-02-25 13:55:11');
 /*!40000 ALTER TABLE `user_profiles` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -604,7 +639,7 @@ CREATE TABLE `users` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -613,6 +648,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
+INSERT INTO `users` VALUES (1,'Waathiq Hendricks','waathiqhendricks0606@gmail.com','$2b$10$9FUrxFkCMvNWHF4gSqg7YuZVNAURfd4O.EJhqEI.0RvXu1wO.OBSG','user',0,1,'2026-02-25 09:54:23','2026-02-25 09:54:23'),(2,'steve dg','hdbfubs@gmail.com','$2b$10$78nf69zhF0.VFaQL3GggaeYnO7vqVJxHkHMljEvhF8zfYGRebkM4i','user',0,1,'2026-02-25 09:57:14','2026-02-25 09:57:14');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -625,4 +661,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-19 11:23:17
+-- Dump completed on 2026-02-27 14:07:08

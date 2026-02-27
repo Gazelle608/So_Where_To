@@ -3,6 +3,18 @@ import crypto from 'crypto';
 
 const toBoolInt = (value) => (value ? 1 : 0);
 const payfastEncode = (value) => encodeURIComponent(String(value).trim()).replace(/%20/g, '+');
+const normalizeTagsForDb = (tags) => {
+    if (Array.isArray(tags)) return JSON.stringify(tags);
+    if (typeof tags === 'string') {
+        try {
+            const parsed = JSON.parse(tags);
+            return JSON.stringify(Array.isArray(parsed) ? parsed : []);
+        } catch {
+            return JSON.stringify([]);
+        }
+    }
+    return JSON.stringify([]);
+};
 
 const buildPayFastSignature = (fields, passphrase = '') => {
     const pairs = Object.entries(fields)
@@ -287,6 +299,172 @@ export const getDestinationById = async (req, res) => {
     }
 };
 
+export const listMysteryDestinations = async (req, res) => {
+    const { region, min_price, max_price, max_days, revealed, search, limit = 50, offset = 0 } = req.query;
+
+    const where = ['1 = 1'];
+    const params = [];
+
+    if (region) {
+        where.push('region = ?');
+        params.push(region);
+    }
+    if (min_price) {
+        where.push('price >= ?');
+        params.push(min_price);
+    }
+    if (max_price) {
+        where.push('price <= ?');
+        params.push(max_price);
+    }
+    if (max_days) {
+        where.push('days <= ?');
+        params.push(max_days);
+    }
+    if (typeof revealed !== 'undefined') {
+        where.push('revealed = ?');
+        params.push(Number(revealed) ? 1 : 0);
+    }
+    if (search) {
+        where.push('(name LIKE ? OR region LIKE ?)');
+        params.push(`%${search}%`, `%${search}%`);
+    }
+
+    try {
+        const rows = await dbQuery(
+            `SELECT destination_id, name, region, price, days, tags, revealed, latitude, longitude, image_url, created_at
+             FROM mystery_destinations
+             WHERE ${where.join(' AND ')}
+             ORDER BY created_at DESC, destination_id DESC
+             LIMIT ? OFFSET ?`,
+            [...params, Number(limit), Number(offset)]
+        );
+
+        const normalized = rows.map((row) => ({
+            ...row,
+            tags: (() => {
+                if (typeof row.tags === 'string') {
+                    try {
+                        return JSON.parse(row.tags);
+                    } catch {
+                        return [];
+                    }
+                }
+                return Array.isArray(row.tags) ? row.tags : [];
+            })()
+        }));
+        res.json(normalized);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getMysteryDestinationById = async (req, res) => {
+    try {
+        const rows = await dbQuery(
+            `SELECT destination_id, name, region, price, days, tags, revealed, latitude, longitude, image_url, created_at
+             FROM mystery_destinations
+             WHERE destination_id = ?`,
+            [req.params.id]
+        );
+        if (!rows.length) return res.status(404).json({ message: 'Mystery destination not found' });
+
+        const destination = rows[0];
+        if (typeof destination.tags === 'string') {
+            try {
+                destination.tags = JSON.parse(destination.tags);
+            } catch {
+                destination.tags = [];
+            }
+        } else if (!Array.isArray(destination.tags)) {
+            destination.tags = [];
+        }
+        res.json(destination);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const createMysteryDestination = async (req, res) => {
+    const { destination_id, name, region, price, days, tags, revealed, latitude, longitude, image_url } = req.body;
+
+    if (!destination_id || !name || !region || typeof price === 'undefined' || typeof days === 'undefined' || !tags) {
+        return res.status(400).json({ message: 'destination_id, name, region, price, days, and tags are required' });
+    }
+
+    try {
+        await dbQuery(
+            `INSERT INTO mystery_destinations
+             (destination_id, name, region, price, days, tags, revealed, latitude, longitude, image_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                destination_id,
+                name,
+                region,
+                price,
+                days,
+                normalizeTagsForDb(tags),
+                typeof revealed === 'undefined' ? 0 : toBoolInt(revealed),
+                latitude ?? null,
+                longitude ?? null,
+                image_url ?? null
+            ]
+        );
+        res.status(201).json({ destination_id });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ message: 'destination_id already exists' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const updateMysteryDestination = async (req, res) => {
+    const { name, region, price, days, tags, revealed, latitude, longitude, image_url } = req.body;
+
+    try {
+        const result = await dbQuery(
+            `UPDATE mystery_destinations
+             SET name = COALESCE(?, name),
+                 region = COALESCE(?, region),
+                 price = COALESCE(?, price),
+                 days = COALESCE(?, days),
+                 tags = COALESCE(?, tags),
+                 revealed = COALESCE(?, revealed),
+                 latitude = COALESCE(?, latitude),
+                 longitude = COALESCE(?, longitude),
+                 image_url = COALESCE(?, image_url)
+             WHERE destination_id = ?`,
+            [
+                name ?? null,
+                region ?? null,
+                price ?? null,
+                days ?? null,
+                typeof tags === 'undefined' ? null : normalizeTagsForDb(tags),
+                typeof revealed === 'undefined' ? null : toBoolInt(revealed),
+                latitude ?? null,
+                longitude ?? null,
+                image_url ?? null,
+                req.params.id
+            ]
+        );
+        if (result.affectedRows === 0) return res.status(404).json({ message: 'Mystery destination not found' });
+        res.json({ message: 'Mystery destination updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const deleteMysteryDestination = async (req, res) => {
+    try {
+        const result = await dbQuery('DELETE FROM mystery_destinations WHERE destination_id = ?', [req.params.id]);
+        if (result.affectedRows === 0) return res.status(404).json({ message: 'Mystery destination not found' });
+        res.json({ message: 'Mystery destination deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const createDestination = async (req, res) => {
     const { name, country, region, image_url, price, days, rating, latitude, longitude, revealed, is_featured, is_active } = req.body;
     if (!name || !region || !price || !days) {
@@ -397,6 +575,51 @@ export const listCartItems = async (req, res) => {
     }
 };
 
+const ensureDestinationExistsForCart = async (destinationId) => {
+    const existing = await dbQuery(
+        'SELECT destination_id FROM destinations WHERE destination_id = ?',
+        [destinationId]
+    );
+    if (existing.length) return true;
+
+    const mystery = await dbQuery(
+        `SELECT destination_id, name, region, price, days, revealed, latitude, longitude, image_url
+         FROM mystery_destinations
+         WHERE destination_id = ?`,
+        [destinationId]
+    );
+    if (!mystery.length) return false;
+
+    const row = mystery[0];
+    await dbQuery(
+        `INSERT INTO destinations
+         (destination_id, name, country, region, image_url, price, days, rating, revealed, is_featured, is_active, latitude, longitude)
+         VALUES (?, ?, NULL, ?, ?, ?, ?, NULL, ?, 0, 1, ?, ?)
+         ON DUPLICATE KEY UPDATE
+         name = VALUES(name),
+         region = VALUES(region),
+         image_url = VALUES(image_url),
+         price = VALUES(price),
+         days = VALUES(days),
+         revealed = VALUES(revealed),
+         is_active = 1,
+         latitude = VALUES(latitude),
+         longitude = VALUES(longitude)`,
+        [
+            row.destination_id,
+            row.name,
+            row.region,
+            row.image_url || null,
+            row.price,
+            row.days,
+            toBoolInt(row.revealed),
+            row.latitude ?? null,
+            row.longitude ?? null
+        ]
+    );
+    return true;
+};
+
 export const addOrUpdateCartItem = async (req, res) => {
     const destination_id = req.body.destination_id ?? req.body.destinationId ?? req.body.id;
     const quantity = req.body.quantity ?? 1;
@@ -404,6 +627,11 @@ export const addOrUpdateCartItem = async (req, res) => {
     if (!destination_id || !unit_price) return res.status(400).json({ message: 'destination_id and unit_price are required' });
 
     try {
+        const destinationExists = await ensureDestinationExistsForCart(destination_id);
+        if (!destinationExists) {
+            return res.status(404).json({ message: 'Destination not found' });
+        }
+
         await dbQuery(
             `INSERT INTO cart_items (user_id, destination_id, quantity, unit_price)
              VALUES (?, ?, ?, ?)
