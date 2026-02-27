@@ -193,7 +193,7 @@ export default {
     ])
     
     // Session timeout
-    const IDLE_TIMEOUT = 15 * 60 * 1000 // 15 minute for testing 
+    const IDLE_TIMEOUT = 1 * 60 * 1000 // 1 minute for testing 
     const WARNING_TIME = 10000 // Show warning 10 seconds before logout
     
     let activityTimer = null
