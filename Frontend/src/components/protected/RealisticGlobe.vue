@@ -1,12 +1,12 @@
 <template>
-  <div class="realistic-globe" ref="globeContainer">
-    <!-- Loading overlay (only shown while globe is initializing) -->
+  <div class="realistic-globe">
+    <div ref="globeContainer" class="globe-canvas"></div>
+
     <div v-if="!globeReady" class="globe-loading">
       <div class="loading-spinner"></div>
       <p>Loading 3D Globe...</p>
     </div>
 
-    <!-- Selected Destination Popup -->
     <transition name="fade">
       <div v-if="selectedDestination" class="destination-popup" :style="popupStyle">
         <button class="popup-close" @click="selectedDestination = null">×</button>
@@ -32,6 +32,7 @@
 import { ref, onMounted, onUnmounted, defineExpose, nextTick, computed } from 'vue'
 import Globe from 'globe.gl'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 
 // Custom marker SVG icons as HTML strings
 const markerIcons = {
@@ -53,6 +54,7 @@ export default {
   emits: ['locationSelected', 'spin', 'spin-complete'],
   setup(props, { emit }) {
     const store = useStore()
+    const router = useRouter()
     const globeContainer = ref(null)
     const globe = ref(null)
     const globeReady = ref(false)
@@ -61,7 +63,7 @@ export default {
     const popupPosition = ref({ x: 0, y: 0 })
     const allMarkersVisible = ref(true)
 
-    // ALL 55 DESTINATIONS - KEPT EXACTLY AS YOU HAD THEM
+    // ALL 55 DESTINATIONS
     const destinations = [
       // Asia
       { id: 1, name: 'Tokyo', country: 'Japan', region: 'Asia', lat: 35.6762, lng: 139.6503, price: 1299, days: 5, rating: 4.8, tags: ['Culture', 'Food', 'Technology'] },
@@ -139,10 +141,18 @@ export default {
     }
 
     const initGlobe = () => {
+      // 1. Safety Check: Ensure the DOM element exists.
+      // globeContainer.value refers to the template ref (e.g., <div ref="globeContainer">).
+      // If the component hasn't rendered yet or the element is missing, we exit 
+      // to prevent "Cannot read property of null" errors when initializing the library.
       if (!globeContainer.value) return
 
-      // Clear any existing globe
+      // 2. Cleanup: Prevent memory leaks and duplicate globes.
+      // If globe.value already holds an instance (e.g., this function was called twice),
+      // we need to properly dismantle the old one before creating a new one.
       if (globe.value) {
+        // _destructor() is a specific internal cleanup method that removes event listeners,
+        // stops the animation loop, and clears the WebGL context from memory.
         globe.value._destructor()
       }
 
@@ -368,11 +378,20 @@ export default {
     }
 
     const handleBooking = () => {
+      console.log("Clicked booking")
+      console.log("Auth:", isAuthenticated.value)
+      console.log("Destination:", selectedDestination.value)
+
       if (isAuthenticated.value && selectedDestination.value) {
-        // Store selected destination and navigate to booking
-        localStorage.setItem('selected_destination', JSON.stringify(selectedDestination.value))
-        window.location.href = '/bookings'
+        localStorage.setItem(
+          'selected_destination',
+          JSON.stringify(selectedDestination.value)
+        )
+
+        console.log("Pushing route...")
+        router.push('/bookings')
       } else {
+        console.log("Blocked by condition")
         store.commit('SHOW_NOTIFICATION', {
           message: 'Please sign in to book this destination',
           type: 'info'

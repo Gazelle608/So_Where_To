@@ -27,7 +27,7 @@
             <span class="code">JNB</span>
             <span class="city">Johannesburg</span>
           </div>
-          <div class="arrow">✈️</div>
+          <div class="arrow"><i class="fas fa-plane"></i></div>
           <div class="to">
             <span class="code">{{ booking.code || '???' }}</span>
             <span class="city">{{ booking.city || 'Mystery' }}</span>

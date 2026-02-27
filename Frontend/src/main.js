@@ -6,17 +6,27 @@ import App from './App.vue'
 import router from './router'
 import store from './stores'
 
-// Import global components - UPDATED PATHS
+// Import global components
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
-const app = createApp(App)
+const initApp = async () => {
+  const app = createApp(App)
 
-// Register global components
-app.component('LoadingSpinner', LoadingSpinner)
+  // Register global components
+  app.component('LoadingSpinner', LoadingSpinner)
 
-app.use(store)
-app.use(router)
+  app.use(store)
+  app.use(router)
 
-await store.dispatch('init')
+  try {
+    // We dispatch the init but wait for it inside this function 
+    // to ensure the app mounts only when the DOM and Store are ready.
+    await store.dispatch('init')
+  } catch (error) {
+    console.error("Store initialization failed:", error)
+  }
 
-app.mount('#app')
+  app.mount('#app')
+}
+
+initApp()

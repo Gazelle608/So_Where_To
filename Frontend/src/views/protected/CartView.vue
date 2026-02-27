@@ -13,58 +13,49 @@
     </div>
 
     <div v-else-if="cartCount === 0" class="empty-cart">
-      <div class="empty-cart-icon">🧳</div>
+      <div class="empty-cart-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="13" x="4" y="7" rx="2"/><path d="M9 7V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><path d="M12 11v4"/><path d="M12 17h.01"/><path d="M16 11v6"/><path d="M8 11v6"/></svg>
+      </div>
       <h2>Your cart is empty</h2>
       <p>Time to spin the globe and find your next adventure!</p>
       <router-link to="/spin" class="btn btn-primary">
-        <span class="btn-icon">🎲</span>
+        <span class="btn-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M7.5 7.5h.01"/><path d="M16.5 16.5h.01"/><path d="M7.5 16.5h.01"/><path d="M16.5 7.5h.01"/><path d="M12 12h.01"/></svg>
+        </span>
         Spin the Globe
       </router-link>
     </div>
 
     <div v-else class="cart-content">
-      <!-- Cart Items -->
       <div class="cart-items">
         <div v-for="item in cartItems" :key="item.id" class="cart-item">
           <div class="item-image" :style="{ backgroundImage: `url(${item.image})` }">
-            <div class="mystery-badge" v-if="!item.revealed">🔒 Mystery</div>
+            <div class="mystery-badge" v-if="!item.revealed">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Mystery
+            </div>
           </div>
           
           <div class="item-details">
             <div class="item-header">
               <h3 class="item-title">{{ item.destination || 'Mystery Destination' }}</h3>
               <button @click="removeItem(item.id)" class="remove-btn" title="Remove">
-                <span>✕</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
             
             <div class="item-info">
-              <div class="info-row">
-                <span class="info-label">Departure:</span>
-                <span class="info-value">{{ formatDate(item.departure) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Return:</span>
-                <span class="info-value">{{ formatDate(item.return) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Airline:</span>
-                <span class="info-value">{{ item.airline }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Accommodation:</span>
-                <span class="info-value">{{ item.hostel }}</span>
-              </div>
+              <div class="info-row"><span class="info-label">Departure:</span><span class="info-value">{{ formatDate(item.departure) }}</span></div>
+              <div class="info-row"><span class="info-label">Return:</span><span class="info-value">{{ formatDate(item.return) }}</span></div>
+              <div class="info-row"><span class="info-label">Airline:</span><span class="info-value">{{ item.airline }}</span></div>
+              <div class="info-row"><span class="info-label">Accommodation:</span><span class="info-value">{{ item.hostel }}</span></div>
             </div>
 
             <div class="item-footer">
               <div class="quantity-control">
-                <button @click="updateQuantity(item.id, item.quantity - 1)" 
-                        class="quantity-btn" 
-                        :disabled="item.quantity <= 1">−</button>
+                <button @click="updateQuantity(item.id, item.quantity - 1)" class="quantity-btn" :disabled="item.quantity <= 1">−</button>
                 <span class="quantity">{{ item.quantity }}</span>
-                <button @click="updateQuantity(item.id, item.quantity + 1)" 
-                        class="quantity-btn">+</button>
+                <button @click="updateQuantity(item.id, item.quantity + 1)" class="quantity-btn">+</button>
               </div>
               <div class="item-price">
                 <span class="price-label">Total:</span>
@@ -75,80 +66,37 @@
         </div>
       </div>
 
-      <!-- Cart Summary -->
       <div class="cart-summary">
         <h3 class="summary-title">Order Summary</h3>
-        
         <div class="summary-details">
-          <div class="summary-row">
-            <span>Subtotal ({{ cartCount }} items)</span>
-            <span>R{{ cartTotal.toLocaleString() }}</span>
-          </div>
-          <div class="summary-row">
-            <span>Booking Fee</span>
-            <span>R{{ bookingFee.toLocaleString() }}</span>
-          </div>
-          <div class="summary-row discount" v-if="discount > 0">
-            <span>Mystery Discount</span>
-            <span>-R{{ discount.toLocaleString() }}</span>
-          </div>
-          <div class="summary-row total">
-            <span>Total</span>
-            <span class="total-value">R{{ grandTotal.toLocaleString() }}</span>
-          </div>
-        </div>
-
-        <div class="promo-code" v-if="!promoApplied">
-          <div class="promo-input-group">
-            <input 
-              type="text" 
-              v-model="promoCode" 
-              placeholder="Enter promo code"
-              @keyup.enter="applyPromo"
-            >
-            <button @click="applyPromo" class="promo-btn">Apply</button>
-          </div>
-          <p class="promo-hint">Try "MYSTERY10" for 10% off!</p>
+          <div class="summary-row"><span>Subtotal ({{ cartCount }} items)</span><span>R{{ cartTotal.toLocaleString() }}</span></div>
+          <div class="summary-row"><span>Booking Fee</span><span>R{{ bookingFee.toLocaleString() }}</span></div>
+          <div class="summary-row discount" v-if="discount > 0"><span>Mystery Discount</span><span>-R{{ discount.toLocaleString() }}</span></div>
+          <div class="summary-row total"><span>Total</span><span class="total-value">R{{ grandTotal.toLocaleString() }}</span></div>
         </div>
 
         <div class="summary-actions">
           <router-link to="/spin" class="btn btn-outline">
-            <span class="btn-icon">➕</span>
+            <span class="btn-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </span>
             Add More
           </router-link>
           <router-link to="/checkout" class="btn btn-primary">
-            <span class="btn-icon">💳</span>
+            <span class="btn-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            </span>
             Checkout
           </router-link>
         </div>
 
-        <div class="payment-badges">
-          <span class="badge">💳 Credit Card</span>
-          <span class="badge">📱 EFT</span>
-          <span class="badge">⚡ PayFast</span>
-        </div>
-
         <div class="guarantee">
-          <span class="guarantee-icon">🔒</span>
+          <span class="guarantee-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#28A745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
           <div class="guarantee-text">
             <strong>Secure Checkout</strong>
             <p>Your payment info is encrypted</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recently Viewed -->
-    <div class="recently-viewed" v-if="recentBundles.length > 0">
-      <h3 class="recent-title">Still Deciding?</h3>
-      <div class="recent-grid">
-        <div v-for="bundle in recentBundles" :key="bundle.id" class="recent-card">
-          <div class="recent-image" :style="{ backgroundImage: `url(${bundle.image})` }">
-            <div class="recent-overlay">
-              <h4>{{ bundle.destination }}</h4>
-              <p>R{{ bundle.price }}</p>
-              <button @click="addToCart(bundle)" class="recent-add-btn">+ Add</button>
-            </div>
           </div>
         </div>
       </div>
@@ -218,9 +166,9 @@ export default {
     loadRecentBundles() {
       // Mock data - replace with actual API call
       this.recentBundles = [
-        { id: 101, destination: 'Tokyo', price: 1299, image: '/images/tokyo.jpg' },
-        { id: 102, destination: 'Paris', price: 999, image: '/images/paris.jpg' },
-        { id: 103, destination: 'Bangkok', price: 899, image: '/images/bangkok.jpg' }
+        { id: 101, destination: 'Tokyo', price: 1299, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+        { id: 102, destination: 'Paris', price: 999, image: 'https://images.unsplash.com/photo-1679231926688-ef9cdab5ed2f?q=80&w=1391&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+        { id: 103, destination: 'Bangkok', price: 899, image: 'https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YmFuZ2tvayUyMGNpdHl8ZW58MHx8MHx8fDA%3D' }
       ]
     }
   }

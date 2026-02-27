@@ -15,7 +15,7 @@
     <div v-else>
       <!-- Empty Wishlist -->
       <div v-if="wishlistItems.length === 0" class="empty-wishlist">
-        <div class="empty-icon">❤️</div>
+        <div class="empty-icon"></div>
         <h2>Your wishlist is empty</h2>
         <p>Start exploring destinations and save your favorites for later!</p>
         <div class="empty-actions">

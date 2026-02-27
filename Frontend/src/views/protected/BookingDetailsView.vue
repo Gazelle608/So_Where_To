@@ -18,7 +18,7 @@
           <span class="code">JNB</span>
           <span class="city">Johannesburg</span>
         </div>
-        <div class="arrow">✈️</div>
+        <div class="arrow"><i class="fas fa-plane"></i></div>
         <div class="to">
           <span class="code">{{ booking.code || '???' }}</span>
           <span class="city">{{ booking.city || 'Mystery' }}</span>
@@ -76,11 +76,10 @@
     <!-- Timeout Warning -->
     <div v-if="showTimeoutWarning" class="timeout-warning">
       <p>Your booking session will expire in {{ timeoutSeconds }} seconds</p>
-      <button @click="extendSession" class="extend-btn">Extend Time</button>
+      <button @click="extendSession" class="extend-btn"><i class="fas fa-plus"></i></button>
     </div>
   </div>
 </template>
-
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
