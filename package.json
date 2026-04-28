@@ -1,4 +1,10 @@
 {
+  "private": true,
+  "scripts": {
+    "build": "cd Frontend && npm install && npm run build && node move-dist.js",
+    "vercel-build": "npm run build",
+    "dev": "cd Frontend && npm run dev"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
