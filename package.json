@@ -1,9 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "build": "cd Frontend && npm install && npm run build && node move-dist.js",
-    "vercel-build": "npm run build",
-    "dev": "cd Frontend && npm run dev"
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
