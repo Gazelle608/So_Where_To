@@ -1,6 +1,7 @@
 backend/node_modules
 Frontend/node_modules
 .env
+.vscode
 
 # Logs
 logs

@@ -1,15 +1,19 @@
 {
+  "name": "so-where-to",
+  "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "Frontend",
+    "backend"
+  ],
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
-  },
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.17.1"
+    "install": "npm install --workspaces",
+    "dev:frontend": "npm --workspace Frontend run dev",
+    "build:frontend": "npm --workspace Frontend run build",
+    "preview:frontend": "npm --workspace Frontend run preview",
+    "dev:backend": "npm --workspace backend run dev",
+    "start:backend": "npm --workspace backend run start",
+    "build": "npm run build:frontend",
+    "start": "npm run start:backend"
   }
 }

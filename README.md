@@ -169,33 +169,31 @@ so-where-to/
 1. **Clone the repository**
 ```bash
 git clone https://github.com/Gazelle608/so-where-to.git
-cd so-where-to/Frontend
-cd so-where-to/backend
+cd so-where-to
 ```
 
-2. **Install dependencies**
+2. **Install dependencies for both packages**
 ```bash
 npm install
 ```
 
-3. **Run development server**
+3. **Create backend environment variables**
 ```bash
-npm run dev
+copy backend\.env.example backend\.env
+```
+Update `backend/.env` with your database, JWT, and PayFast credentials.
+
+4. **Run frontend development server**
+```bash
+npm run dev:frontend
 ```
 
-4. **Install backend dependencies**
+4. **Run backend in development mode**
 ```bash
-npm install
+npm run dev:backend
 ```
 
-5. **Run backend dependencies**
-```bash
-node --watch server.js
-node server.js
-nodemon
-```
-
-The application will be available at `http://localhost:5173`
+The frontend will run at `http://localhost:5173` and the backend will run at `http://localhost:3000`.
 
 ---
 
